@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
   isAdminLoggedIn: boolean;
@@ -8,26 +8,14 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ isAdminLoggedIn, onLoginStatusChange }) => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = () => {
     onLoginStatusChange(false);
     navigate('/'); // Redirect to home after logout
   };
 
-  const isHomePage = location.pathname === '/';
-
-  const navClass = isHomePage
-    ? "navbar navbar-expand-lg navbar-dark bg-transparent"
-    : "navbar navbar-expand-lg navbar-dark bg-dark";
-
-  const navStyle = isHomePage
-    ? { position: 'absolute' as 'absolute', width: '100%', zIndex: 100 }
-    : {};
-
-
   return (
-    <nav className={navClass} style={navStyle}>
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
       <div className="container-fluid">
         <Link className="navbar-brand" to="/">
           Tennis Championship
