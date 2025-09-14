@@ -1,0 +1,9 @@
+
+> backend@1.0.0 start
+> ts-node src/index.ts
+
+Backend server listening at http://localhost:3001
+Login attempt: { username: 'admin', password: 'password' }
+Login attempt: { username: 'admin', password: 'password' }
+Login attempt: { username: 'admin', password: 'UsmanisKing' }
+Login attempt: { username: 'admin', password: 'password' }
