@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/tennistournament/static/css/main.23655f27.css",
+    "main.js": "/tennistournament/static/js/main.8fdb1d96.js",
+    "index.html": "/tennistournament/index.html",
+    "main.23655f27.css.map": "/tennistournament/static/css/main.23655f27.css.map",
+    "main.8fdb1d96.js.map": "/tennistournament/static/js/main.8fdb1d96.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.23655f27.css",
+    "static/js/main.8fdb1d96.js"
+  ]
+}
