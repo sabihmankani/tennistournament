@@ -1,0 +1,26 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+}
+
+:root {
+  --primary-color: #673AB7; /* Deep Purple */
+  --primary-dark: #512DA8;
+  --primary-light: #D1C4E9;
+  --accent-color: #FFC107; /* Amber */
+  --bg-light: #f8f9fa;
+  --bg-dark: #343a40;
+  --text-dark: #333;
+  --text-light: #f8f9fa;
+  --card-bg: #ffffff;
+  --border-color: #e0e0e0;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
