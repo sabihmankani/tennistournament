@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AddPlayerForm from '../components/AddPlayerForm';
+import { API_BASE_URL } from '../apiConfig';
 
 interface Player {
   id: string;
@@ -18,7 +19,7 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
 
   const fetchPlayers = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/players');
+      const response = await fetch(`${API_BASE_URL}/api/players`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -39,7 +40,7 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
 
   const handleRemovePlayer = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/players/${id}`,
+      const response = await fetch(`${API_BASE_URL}/api/players/${id}`,
         {
           method: 'DELETE',
         }

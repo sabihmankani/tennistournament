@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AddTournamentForm from '../components/AddTournamentForm';
+import { API_BASE_URL } from '../apiConfig';
 
 interface Tournament {
   id: string;
@@ -16,7 +17,7 @@ const TournamentsPage: React.FC<TournamentsPageProps> = ({ isAdminLoggedIn }) =>
 
   const fetchTournaments = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/tournaments');
+      const response = await fetch(`${API_BASE_URL}/api/tournaments`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -38,7 +39,7 @@ const TournamentsPage: React.FC<TournamentsPageProps> = ({ isAdminLoggedIn }) =>
   const handleDeleteTournament = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this tournament?')) {
       try {
-        const response = await fetch(`http://localhost:3001/api/tournaments/${id}`,
+        const response = await fetch(`${API_BASE_URL}/api/tournaments/${id}`,
           {
             method: 'DELETE',
           }

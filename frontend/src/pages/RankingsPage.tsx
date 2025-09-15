@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../apiConfig';
 
 interface Player {
   id: string;
@@ -41,7 +42,7 @@ const RankingsPage: React.FC = () => {
     const fetchData = async () => {
       try {
         // Fetch overall rankings
-        const overallResponse = await fetch('http://localhost:3001/api/rankings/overall');
+        const overallResponse = await fetch(`${API_BASE_URL}/api/rankings/overall`);
         if (!overallResponse.ok) {
           throw new Error(`HTTP error! status: ${overallResponse.status}`);
         }
@@ -49,7 +50,7 @@ const RankingsPage: React.FC = () => {
         setOverallRankings(overallData);
 
         // Fetch tournaments for dropdown
-        const tournamentsResponse = await fetch('http://localhost:3001/api/tournaments');
+        const tournamentsResponse = await fetch(`${API_BASE_URL}/api/tournaments`);
         if (!tournamentsResponse.ok) {
           throw new Error(`HTTP error! status: ${tournamentsResponse.status}`);
         }
@@ -57,7 +58,7 @@ const RankingsPage: React.FC = () => {
         setTournaments(tournamentsData);
 
         // Fetch groups
-        const groupsResponse = await fetch('http://localhost:3001/api/groups');
+        const groupsResponse = await fetch(`${API_BASE_URL}/api/groups`);
         if (!groupsResponse.ok) {
           throw new Error(`HTTP error! status: ${groupsResponse.status}`);
         }
@@ -80,7 +81,7 @@ const RankingsPage: React.FC = () => {
           const groupRankingsData: { [key: string]: PlayerRanking[] } = {};
           for (const groupId of tournament.groupIds) {
             try {
-              const response = await fetch(`http://localhost:3001/api/rankings/tournament/${selectedTournament}/group/${groupId}`);
+              const response = await fetch(`${API_BASE_URL}/api/rankings/tournament/${selectedTournament}/group/${groupId}`);
               if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
               }
@@ -95,7 +96,7 @@ const RankingsPage: React.FC = () => {
         } else {
           // Fetch non-group-based rankings
           try {
-            const response = await fetch(`http://localhost:3001/api/rankings/tournament/${selectedTournament}`);
+            const response = await fetch(`${API_BASE_URL}/api/rankings/tournament/${selectedTournament}`);
             if (!response.ok) {
               throw new Error(`HTTP error! status: ${response.status}`);
             }

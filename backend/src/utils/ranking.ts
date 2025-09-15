@@ -1,73 +1,57 @@
-import { readJsonFile } from '../index'; // Assuming readJsonFile is exported from index.ts
-import path from 'path';
-
-const dataDir = path.join(__dirname, '../../data');
-const playersFilePath = path.join(dataDir, 'players.json');
-const matchesFilePath = path.join(dataDir, 'matches.json');
-
-interface Player {
-  id: string;
-  firstName: string;
-  lastName: string;
-  location: string;
-  ranking: number;
-}
-
-interface Match {
-  id: string;
-  tournamentId: string;
-  player1Id: string;
-  player2Id: string;
-  score1: number;
-  score2: number;
-  location: string;
-  date: string; // ISO date string
-  groupId?: string; // Added for consistency, though not directly used in ranking logic here
-}
+import { Player, Match, IPlayer, IMatch } from '../models';
+import mongoose from 'mongoose';
 
 interface PlayerRanking {
-  player: Player;
+  player: IPlayer; // Use Mongoose Player interface
   wins: number;
   losses: number;
   winLossRatio: number;
-  setsWon: number; // New stat
-  setsLost: number; // New stat
-  setsRatio: number; // New stat
+  setsWon: number;
+  setsLost: number;
+  setsRatio: number;
 }
 
-export const calculateOverallRanking = (): PlayerRanking[] => {
-  const players = readJsonFile<Player>(playersFilePath);
-  const matches = readJsonFile<Match>(matchesFilePath);
+export const calculateOverallRanking = async (): Promise<PlayerRanking[]> => {
+  const players = await Player.find();
+  const matches = await Match.find();
 
   const playerStats: { [key: string]: { wins: number; losses: number; setsWon: number; setsLost: number } } = {};
 
   players.forEach(player => {
-    playerStats[player.id] = { wins: 0, losses: 0, setsWon: 0, setsLost: 0 };
+    playerStats[player._id.toString()] = { wins: 0, losses: 0, setsWon: 0, setsLost: 0 };
   });
 
   matches.forEach(match => {
+    const player1Id = match.player1Id.toString();
+    const player2Id = match.player2Id.toString();
+
+    if (!playerStats[player1Id] || !playerStats[player2Id]) {
+      // Handle cases where player might not exist (e.g., deleted player)
+      return;
+    }
+
     // Update match wins/losses
     if (match.score1 > match.score2) {
-      playerStats[match.player1Id].wins++;
-      playerStats[match.player2Id].losses++;
+      playerStats[player1Id].wins++;
+      playerStats[player2Id].losses++;
     } else if (match.score2 > match.score1) {
-      playerStats[match.player2Id].wins++;
-      playerStats[match.player1Id].losses++;
+      playerStats[player2Id].wins++;
+      playerStats[player1Id].losses++;
     }
 
     // Update sets won/lost
-    playerStats[match.player1Id].setsWon += match.score1;
-    playerStats[match.player1Id].setsLost += match.score2;
-    playerStats[match.player2Id].setsWon += match.score2;
-    playerStats[match.player2Id].setsLost += match.score1;
+    playerStats[player1Id].setsWon += match.score1;
+    playerStats[player1Id].setsLost += match.score2;
+    playerStats[player2Id].setsWon += match.score2;
+    playerStats[player2Id].setsLost += match.score1;
   });
 
   const rankings: PlayerRanking[] = players.map(player => {
-    const stats = playerStats[player.id];
+    const stats = playerStats[player._id.toString()];
     const totalMatches = stats.wins + stats.losses;
     const winLossRatio = totalMatches > 0 ? stats.wins / totalMatches : 0;
     const totalSets = stats.setsWon + stats.setsLost;
-    const setsRatio = totalSets > 0 ? stats.setsWon / totalSets : 0; // Calculate sets ratio
+    const setsRatio = totalSets > 0 ? stats.setsWon / totalSets : 0;
 
     return {
       player,
@@ -89,24 +73,21 @@ export const calculateOverallRanking = (): PlayerRanking[] => {
   });
 };
 
-export const calculateTournamentRanking = (tournamentId: string, groupId?: string): PlayerRanking[] => {
-  const players = readJsonFile<Player>(playersFilePath);
-  const matches = readJsonFile<Match>(matchesFilePath);
-
-  let tournamentMatches = matches.filter(match => match.tournamentId === tournamentId);
-
-  // If a groupId is provided, filter matches by that group
+export const calculateTournamentRanking = async (tournamentId: string, groupId?: string): Promise<PlayerRanking[]> => {
+  const players = await Player.find();
+  let query: any = { tournamentId: new mongoose.Types.ObjectId(tournamentId) };
   if (groupId) {
-    tournamentMatches = tournamentMatches.filter(match => match.groupId === groupId);
+    query.groupId = new mongoose.Types.ObjectId(groupId);
   }
+  const tournamentMatches = await Match.find(query);
 
   const playerStats: { [key: string]: { wins: number; losses: number; setsWon: number; setsLost: number } } = {};
 
   // Initialize stats for players who played in this tournament
   const playersInTournament = new Set<string>();
   tournamentMatches.forEach(match => {
-    playersInTournament.add(match.player1Id);
-    playersInTournament.add(match.player2Id);
+    playersInTournament.add(match.player1Id.toString());
+    playersInTournament.add(match.player2Id.toString());
   });
 
   playersInTournament.forEach(playerId => {
@@ -114,24 +95,32 @@ export const calculateTournamentRanking = (tournamentId: string, groupId?: strin
   });
 
   tournamentMatches.forEach(match => {
+    const player1Id = match.player1Id.toString();
+    const player2Id = match.player2Id.toString();
+
+    if (!playerStats[player1Id] || !playerStats[player2Id]) {
+      // Handle cases where player might not exist (e.g., deleted player)
+      return;
+    }
+
     // Update match wins/losses
     if (match.score1 > match.score2) {
-      playerStats[match.player1Id].wins++;
-      playerStats[match.player2Id].losses++;
+      playerStats[player1Id].wins++;
+      playerStats[player2Id].losses++;
     } else if (match.score2 > match.score1) {
-      playerStats[match.player2Id].wins++;
-      playerStats[match.player1Id].losses++;
+      playerStats[player2Id].wins++;
+      playerStats[player1Id].losses++;
     }
 
     // Update sets won/lost
-    playerStats[match.player1Id].setsWon += match.score1;
-    playerStats[match.player1Id].setsLost += match.score2;
-    playerStats[match.player2Id].setsWon += match.score2;
-    playerStats[match.player2Id].setsLost += match.score1;
+    playerStats[player1Id].setsWon += match.score1;
+    playerStats[player1Id].setsLost += match.score2;
+    playerStats[player2Id].setsWon += match.score2;
+    playerStats[player2Id].setsLost += match.score1;
   });
 
   const rankings: PlayerRanking[] = Array.from(playersInTournament).map(playerId => {
-    const player = players.find(p => p.id === playerId);
+    const player = players.find(p => p._id.toString() === playerId);
     if (!player) {
       throw new Error(`Player with ID ${playerId} not found.`);
     }
@@ -139,7 +128,7 @@ export const calculateTournamentRanking = (tournamentId: string, groupId?: strin
     const totalMatches = stats.wins + stats.losses;
     const winLossRatio = totalMatches > 0 ? stats.wins / totalMatches : 0;
     const totalSets = stats.setsWon + stats.setsLost;
-    const setsRatio = totalSets > 0 ? stats.setsWon / totalSets : 0; // Calculate sets ratio
+    const setsRatio = totalSets > 0 ? stats.setsWon / totalSets : 0;
 
     return {
       player,

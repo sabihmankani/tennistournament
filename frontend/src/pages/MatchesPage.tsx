@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_BASE_URL } from '../apiConfig';
 
 interface Match {
   id: string;
@@ -33,15 +34,15 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
 
   const fetchMatchesData = async () => {
     try {
-      const matchesResponse = await fetch('http://localhost:3001/api/matches');
+      const matchesResponse = await fetch(`${API_BASE_URL}/api/matches`);
       const matchesData: Match[] = await matchesResponse.json();
       setMatches(matchesData);
 
-      const playersResponse = await fetch('http://localhost:3001/api/players');
+      const playersResponse = await fetch(`${API_BASE_URL}/api/players`);
       const playersData: Player[] = await playersResponse.json();
       setPlayers(playersData);
 
-      const tournamentsResponse = await fetch('http://localhost:3001/api/tournaments');
+      const tournamentsResponse = await fetch(`${API_BASE_URL}/api/tournaments`);
       const tournamentsData: Tournament[] = await tournamentsResponse.json();
       setTournaments(tournamentsData);
 
@@ -67,7 +68,7 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   const handleDeleteMatch = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this match?')) {
       try {
-        const response = await fetch(`http://localhost:3001/api/matches/${id}`,
+        const response = await fetch(`${API_BASE_URL}/api/matches/${id}`,
           {
             method: 'DELETE',
           }

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../apiConfig';
 
 const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const AdminDashboardPage: React.FC = () => {
 
   const handleInitializeTournament = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/initialize-tournament', {
+      const response = await fetch(`${API_BASE_URL}/api/initialize-tournament`, {
         method: 'POST',
       });
       if (!response.ok) {

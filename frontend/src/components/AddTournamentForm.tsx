@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../apiConfig';
 
 interface AddTournamentFormProps {
   onTournamentAdded: () => void;
@@ -13,7 +14,7 @@ const AddTournamentForm: React.FC<AddTournamentFormProps> = ({ onTournamentAdded
     const newTournament = { name: tournamentName, isGroupBased };
 
     try {
-      const response = await fetch('http://localhost:3001/api/tournaments', {
+      const response = await fetch(`${API_BASE_URL}/api/tournaments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

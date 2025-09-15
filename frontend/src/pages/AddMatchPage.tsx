@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../apiConfig';
 
 interface Player {
   id: string;
@@ -37,15 +38,15 @@ const AddMatchPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const tournamentsResponse = await fetch('http://localhost:3001/api/tournaments');
+        const tournamentsResponse = await fetch(`${API_BASE_URL}/api/tournaments`);
         const tournamentsData: Tournament[] = await tournamentsResponse.json();
         setTournaments(tournamentsData);
 
-        const playersResponse = await fetch('http://localhost:3001/api/players');
+        const playersResponse = await fetch(`${API_BASE_URL}/api/players`);
         const playersData: Player[] = await playersResponse.json();
         setPlayers(playersData);
 
-        const groupsResponse = await fetch('http://localhost:3001/api/groups'); // Fetch groups
+        const groupsResponse = await fetch(`${API_BASE_URL}/api/groups`); // Fetch groups
         const groupsData: Group[] = await groupsResponse.json();
         setGroups(groupsData);
       } catch (error) {
@@ -87,7 +88,7 @@ const AddMatchPage: React.FC = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:3001/api/matches', {
+      const response = await fetch(`${API_BASE_URL}/api/matches`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

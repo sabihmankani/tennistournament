@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../apiConfig';
 
 interface AddPlayerFormProps {
   onPlayerAdded: () => void;
@@ -15,7 +16,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
     const newPlayer = { firstName, lastName, location, ranking };
 
     try {
-      const response = await fetch('http://localhost:3001/api/players', {
+      const response = await fetch(`${API_BASE_URL}/api/players`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
