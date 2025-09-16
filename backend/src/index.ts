@@ -76,20 +76,6 @@ app.post('/api/tournaments', async (req, res) => {
   try {
     const { name, isGroupBased } = req.body;
     const newTournament = new Tournament({ name, isGroupBased, groupIds: [] });
-
-    if (isGroupBased) {
-      const players = await Player.find();
-      const playerIds = players.map(p => p._id);
-
-      const group1 = new Group({ name: 'Group A', playerIds: playerIds.slice(0, Math.ceil(playerIds.length / 2)) });
-      const group2 = new Group({ name: 'Group B', playerIds: playerIds.slice(Math.ceil(playerIds.length / 2)) });
-
-      await group1.save();
-      await group2.save();
-
-      newTournament.groupIds.push(group1._id, group2._id);
-    }
-
     await newTournament.save();
     res.status(201).json(formatDoc(newTournament));
   } catch (err: any) {
@@ -106,6 +92,62 @@ app.delete('/api/tournaments/:id', async (req, res) => {
     }
     // Optionally delete associated groups and matches here
     res.status(204).send();
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+app.get('/api/tournaments/:id/groups', async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id).populate('groupIds');
+    if (!tournament) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+    res.json(tournament.groupIds.map(formatDoc));
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+app.post('/api/tournaments/:id/groups', async (req, res) => {
+  try {
+    const tournament = await Tournament.findById(req.params.id);
+    if (!tournament) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+
+    if (tournament.groupIds.length >= 5) {
+      return res.status(400).json({ message: 'Maximum of 5 groups allowed per tournament' });
+    }
+
+    const { name } = req.body;
+    const newGroup = new Group({ name, playerIds: [] });
+    await newGroup.save();
+
+    tournament.groupIds.push(newGroup._id);
+    await tournament.save();
+
+    res.status(201).json(formatDoc(newGroup));
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+app.put('/api/groups/:id/players', async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const { playerIds } = req.body;
+    group.playerIds = playerIds;
+    await group.save();
+
+    res.json(formatDoc(group));
   } catch (err: any) {
     console.error(err.message);
     res.status(500).send('Server Error');

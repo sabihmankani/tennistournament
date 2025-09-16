@@ -47,6 +47,13 @@ const Navbar: React.FC<NavbarProps> = ({ isAdminLoggedIn, onLoginStatusChange })
                 </Link>
               </li>
             )}
+            {isAdminLoggedIn && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/groups">
+                  Groups
+                </Link>
+              </li>
+            )}
             <li className="nav-item">
               <Link className="nav-link" to="/add-match">
                 Add Match

@@ -10,6 +10,7 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import RankingsPage from './pages/RankingsPage';
 import MatchesPage from './pages/MatchesPage';
+import GroupsPage from './pages/GroupsPage';
 
 function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/players" element={<PlayersPage isAdminLoggedIn={isAdminLoggedIn} />} />
           <Route path="/tournaments" element={<TournamentsPage isAdminLoggedIn={isAdminLoggedIn} />} />
+          <Route path="/groups" element={<GroupsPage />} />
           <Route path="/add-match" element={<AddMatchPage />} />
           <Route path="/matches" element={<MatchesPage isAdminLoggedIn={isAdminLoggedIn} />} />
           <Route path="/rankings" element={<RankingsPage />} />
