@@ -118,14 +118,14 @@ app.post('/api/matches', async (req, res) => {
     const { tournamentId, player1Id, player2Id, score1, score2, location, groupId } = req.body;
 
     const newMatch = new Match({
-      tournamentId: new mongoose.Types.ObjectId(tournamentId),
-      player1Id: new mongoose.Types.ObjectId(player1Id),
-      player2Id: new mongoose.Types.ObjectId(player2Id),
+      tournamentId: new mongoose.Types.ObjectId(tournamentId as string),
+      player1Id: new mongoose.Types.ObjectId(player1Id as string),
+      player2Id: new mongoose.Types.ObjectId(player2Id as string),
       score1,
       score2,
       location,
       date: new Date(),
-      groupId: groupId ? new mongoose.Types.ObjectId(groupId) : undefined,
+      groupId: groupId ? new mongoose.Types.ObjectId(groupId as string) : undefined,
     });
     await newMatch.save();
     res.status(201).json(formatDoc(newMatch));

@@ -1,7 +1,8 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, Document, Types } from 'mongoose';
 
 // Player Model
 export interface IPlayer extends Document {
+  _id: Types.ObjectId;
   firstName: string;
   lastName: string;
   location: string;
@@ -17,8 +18,9 @@ export const Player = model<IPlayer>('Player', PlayerSchema);
 
 // Group Model
 export interface IGroup extends Document {
+  _id: Types.ObjectId;
   name: string;
-  playerIds: Schema.Types.ObjectId[]; // References Player documents
+  playerIds: Types.ObjectId[]; // References Player documents
 }
 const GroupSchema = new Schema<IGroup>({
   name: { type: String, required: true },
@@ -28,8 +30,9 @@ export const Group = model<IGroup>('Group', GroupSchema);
 
 // Tournament Model
 export interface ITournament extends Document {
+  _id: Types.ObjectId;
   name: string;
-  groupIds: Schema.Types.ObjectId[]; // References Group documents
+  groupIds: Types.ObjectId[]; // References Group documents
   isGroupBased: boolean;
 }
 const TournamentSchema = new Schema<ITournament>({
@@ -41,14 +44,15 @@ export const Tournament = model<ITournament>('Tournament', TournamentSchema);
 
 // Match Model
 export interface IMatch extends Document {
-  tournamentId: Schema.Types.ObjectId; // References Tournament document
-  player1Id: Schema.Types.ObjectId;    // References Player document
-  player2Id: Schema.Types.ObjectId;    // References Player document
+  _id: Types.ObjectId;
+  tournamentId: Types.ObjectId; // References Tournament document
+  player1Id: Types.ObjectId;    // References Player document
+  player2Id: Types.ObjectId;    // References Player document
   score1: number;
   score2: number;
   location: string;
   date: Date; // Stored as a Date object
-  groupId?: Schema.Types.ObjectId;     // References Group document (optional)
+  groupId?: Types.ObjectId;     // References Group document (optional)
 }
 const MatchSchema = new Schema<IMatch>({
   tournamentId: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
