@@ -19,14 +19,14 @@ const AdminDashboardPage: React.FC = () => {
   };
 
   return (
-    <Container sx={{ mt: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, p: 3 }}> {/* Added maxWidth and padding for better layout */}
       <Typography variant="h4" component="h2" gutterBottom>
         Admin Dashboard
       </Typography>
-      <Typography variant="body1" gutterBottom>
+      <Typography variant="body1" gutterBottom sx={{ mb: 3 }}> {/* Added margin bottom */}
         Welcome, Admin!
       </Typography>
-      <Button variant="contained" color="error" onClick={handleLogout} sx={{ mr: 2 }}>
+      <Button variant="contained" color="error" onClick={handleLogout} size="large"> {/* Added size for Material 3 feel */}
         Logout
       </Button>
       {/* Admin functionalities will go here */}
