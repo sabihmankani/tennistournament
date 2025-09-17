@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import AddTournamentForm from '../components/AddTournamentForm';
-import { API_BASE_URL } from '../apiConfig';
+import AddTournamentForm from '../components/AddTournamentForm'; // This will be converted to MUI later
+import { api } from '../apiConfig';
+import { Box, Typography, List, ListItem, ListItemText, Button, CircularProgress, IconButton } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Tournament {
   id: string;
@@ -14,17 +16,20 @@ interface TournamentsPageProps {
 
 const TournamentsPage: React.FC<TournamentsPageProps> = ({ isAdminLoggedIn }) => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTournaments = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/tournaments`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: Tournament[] = await response.json();
-      setTournaments(data);
-    } catch (error) {
-      console.error("Error fetching tournaments:", error);
+      const response = await api.get<Tournament[]>('/tournaments');
+      setTournaments(response.data);
+    } catch (err: any) {
+      console.error("Error fetching tournaments:", err);
+      setError('Failed to fetch tournaments.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,55 +37,55 @@ const TournamentsPage: React.FC<TournamentsPageProps> = ({ isAdminLoggedIn }) =>
     fetchTournaments();
   }, []);
 
-  const handleTournamentAdded = () => {
-    fetchTournaments(); // Refresh the list after a tournament is added
-  };
-
   const handleDeleteTournament = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this tournament?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/tournaments/${id}`,
-          {
-            method: 'DELETE',
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        await api.delete(`/tournaments/${id}`);
         fetchTournaments(); // Refresh the list after deletion
-      } catch (error) {
-        console.error("Error deleting tournament:", error);
-        alert('Failed to delete tournament.');
+      } catch (err: any) {
+        console.error("Error deleting tournament:", err);
+        setError('Failed to delete tournament.');
       }
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">Tournaments</h2>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom>
+        Tournaments
+      </Typography>
       {isAdminLoggedIn && <AddTournamentForm onTournamentAdded={handleTournamentAdded} />}
 
-      <h3 className="mt-5">Current Tournaments</h3>
-      {tournaments.length === 0 ? (
-        <p>No tournaments added yet.</p>
+      <Typography variant="h5" component="h3" sx={{ mt: 5, mb: 2 }}>
+        Current Tournaments
+      </Typography>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Typography color="error">{error}</Typography>
+      ) : tournaments.length === 0 ? (
+        <Typography>No tournaments added yet.</Typography>
       ) : (
-        <ul className="list-group">
-          {tournaments.map(tournament => (
-            <li key={tournament.id} className="list-group-item d-flex justify-content-between align-items-center">
-              {tournament.name}
-              {isAdminLoggedIn && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDeleteTournament(tournament.id)}
-                >
-                  Delete
-                </button>
-              )}
-            </li>
+        <List>
+          {tournaments.map((tournament) => (
+            <ListItem
+              key={tournament.id}
+              secondaryAction={
+                isAdminLoggedIn && (
+                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteTournament(tournament.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                )
+              }
+            >
+              <ListItemText primary={tournament.name} />
+            </ListItem>
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Box>
   );
 };
 

@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../apiConfig';
+import { api } from '../apiConfig';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Alert
+} from '@mui/material';
 
 interface AdminLoginPageProps {
   onLoginSuccess: () => void;
@@ -9,67 +20,69 @@ interface AdminLoginPageProps {
 const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
+      const response = await api.post('/admin/login', { username, password });
 
-      if (response.ok) {
-        onLoginSuccess(); // Call the prop function
-        navigate('/admin/dashboard'); // Redirect to admin dashboard
+      if (response.status === 200) {
+        onLoginSuccess();
+        navigate('/admin/dashboard');
       } else {
-        alert('Invalid credentials');
+        setError('Invalid credentials');
       }
-    } catch (error) {
-      console.error("Error during login:", error);
-      alert('Login failed.');
+    } catch (err: any) {
+      console.error("Error during login:", err);
+      setError('Login failed. Please try again.');
     }
   };
 
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-6">
-          <div className="card p-4">
-            <h2 className="card-title text-center mb-4">Admin Login</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="username" className="form-label">Username</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="password" className="form-label">Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-primary w-100">Login</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Container maxWidth="sm" sx={{ mt: 5 }}>
+      <Grid container justifyContent="center">
+        <Grid item xs={12}>
+          <Card>
+            <CardContent sx={{ p: 4 }}>
+              <Typography variant="h5" component="h2" align="center" gutterBottom>
+                Admin Login
+              </Typography>
+              {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+              <form onSubmit={handleSubmit}>
+                <Box sx={{ mb: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Username"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </Box>
+                <Box sx={{ mb: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </Box>
+                <Button type="submit" variant="contained" color="primary" fullWidth>
+                  Login
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

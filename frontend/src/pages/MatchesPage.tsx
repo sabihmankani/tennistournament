@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../apiConfig';
+import { api } from '../apiConfig';
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
+  CircularProgress,
+  Alert
+} from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Match {
   id: string;
@@ -31,23 +42,27 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchMatchesData = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const matchesResponse = await fetch(`${API_BASE_URL}/api/matches`);
-      const matchesData: Match[] = await matchesResponse.json();
-      setMatches(matchesData);
+      const matchesResponse = await api.get<Match[]>('/matches');
+      setMatches(matchesResponse.data);
 
-      const playersResponse = await fetch(`${API_BASE_URL}/api/players`);
-      const playersData: Player[] = await playersResponse.json();
-      setPlayers(playersData);
+      const playersResponse = await api.get<Player[]>('/players');
+      setPlayers(playersResponse.data);
 
-      const tournamentsResponse = await fetch(`${API_BASE_URL}/api/tournaments`);
-      const tournamentsData: Tournament[] = await tournamentsResponse.json();
-      setTournaments(tournamentsData);
+      const tournamentsResponse = await api.get<Tournament[]>('/tournaments');
+      setTournaments(tournamentsResponse.data);
 
-    } catch (error) {
-      console.error("Error fetching matches data:", error);
+    } catch (err: any) {
+      console.error("Error fetching matches data:", err);
+      setError('Failed to fetch matches data.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,49 +83,63 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   const handleDeleteMatch = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this match?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/matches/${id}`,
-          {
-            method: 'DELETE',
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        await api.delete(`/matches/${id}`);
         fetchMatchesData(); // Refresh the list after deletion
-      } catch (error) {
-        console.error("Error deleting match:", error);
-        alert('Failed to delete match.');
+      } catch (err: any) {
+        console.error("Error deleting match:", err);
+        setError('Failed to delete match.');
       }
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">All Matches</h2>
-      {matches.length === 0 ? (
-        <p>No matches recorded yet.</p>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom>
+        All Matches
+      </Typography>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : matches.length === 0 ? (
+        <Typography>No matches recorded yet.</Typography>
       ) : (
-        <ul className="list-group">
-          {matches.map(match => (
-            <li key={match.id} className="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <strong>{getTournamentName(match.tournamentId)}:</strong> {getPlayerName(match.player1Id)} {match.score1} - {match.score2} {getPlayerName(match.player2Id)}
-                <br />
-                <small>Location: {match.location} | Date: {new Date(match.date).toLocaleDateString()}</small>
-              </div>
-              {isAdminLoggedIn && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleDeleteMatch(match.id)}
-                >
-                  Delete
-                </button>
-              )}
-            </li>
+        <List>
+          {matches.map((match) => (
+            <ListItem
+              key={match.id}
+              secondaryAction={
+                isAdminLoggedIn && (
+                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteMatch(match.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                )
+              }
+            >
+              <ListItemText
+                primary={
+                  <>
+                    <Typography component="span" variant="body1" color="text.primary">
+                      {getTournamentName(match.tournamentId)}:
+                    </Typography>{
+                    <Typography component="span" variant="body1" color="text.secondary">
+                      {` ${getPlayerName(match.player1Id)} ${match.score1} - ${match.score2} ${getPlayerName(match.player2Id)}`}
+                    </Typography>}
+                  </>
+                }
+                secondary={
+                  <Typography component="span" variant="body2" color="text.secondary">
+                    Location: {match.location} | Date: {new Date(match.date).toLocaleDateString()}
+                  </Typography>
+                }
+              />
+            </ListItem>
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Box>
   );
 };
 

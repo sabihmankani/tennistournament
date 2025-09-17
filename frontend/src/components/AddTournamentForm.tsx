@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { API_BASE_URL } from '../apiConfig';
+import { api } from '../apiConfig';
+import { Box, TextField, Button, Typography, Card, CardContent, FormControlLabel, Checkbox } from '@mui/material';
 
 interface AddTournamentFormProps {
   onTournamentAdded: () => void;
@@ -14,17 +15,7 @@ const AddTournamentForm: React.FC<AddTournamentFormProps> = ({ onTournamentAdded
     const newTournament = { name: tournamentName, isGroupBased };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/tournaments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTournament),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      await api.post('/tournaments', newTournament);
 
       setTournamentName('');
       setIsGroupBased(false); // Reset checkbox
@@ -35,33 +26,40 @@ const AddTournamentForm: React.FC<AddTournamentFormProps> = ({ onTournamentAdded
   };
 
   return (
-    <div className="card p-4 mb-4">
-      <h3>Add New Tournament</h3>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label htmlFor="tournamentName" className="form-label">Tournament Name</label>
-          <input
-            type="text"
-            className="form-control"
-            id="tournamentName"
-            value={tournamentName}
-            onChange={(e) => setTournamentName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-3 form-check">
-          <input
-            type="checkbox"
-            className="form-check-input"
-            id="isGroupBased"
-            checked={isGroupBased}
-            onChange={(e) => setIsGroupBased(e.target.checked)}
-          />
-          <label className="form-check-label" htmlFor="isGroupBased">Group Based Tournament</label>
-        </div>
-        <button type="submit" className="btn btn-primary">Add Tournament</button>
-      </form>
-    </div>
+    <Card sx={{ p: 4, mb: 4 }}>
+      <CardContent>
+        <Typography variant="h5" component="h3" gutterBottom>
+          Add New Tournament
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Tournament Name"
+              id="tournamentName"
+              value={tournamentName}
+              onChange={(e) => setTournamentName(e.target.value)}
+              required
+            />
+          </Box>
+          <Box sx={{ mb: 3 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isGroupBased}
+                  onChange={(e) => setIsGroupBased(e.target.checked)}
+                  id="isGroupBased"
+                />
+              }
+              label="Group Based Tournament"
+            />
+          </Box>
+          <Button type="submit" variant="contained" color="primary">
+            Add Tournament
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../apiConfig';
+import { api } from '../apiConfig';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Card,
+  CardContent,
+  Grid,
+  CircularProgress,
+  Alert
+} from '@mui/material';
 
 interface Player {
   id: string;
@@ -10,8 +25,8 @@ interface Player {
 interface Tournament {
   id: string;
   name: string;
-  isGroupBased: boolean; // Added property
-  groupIds: string[]; // Added property
+  isGroupBased: boolean;
+  groupIds: string[];
 }
 
 interface Group {
@@ -23,34 +38,39 @@ interface Group {
 const AddMatchPage: React.FC = () => {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]); // New state for groups
+  const [groups, setGroups] = useState<Group[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<string>('');
-  const [selectedGroup, setSelectedGroup] = useState<string>(''); // New state for selected group
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [player1, setPlayer1] = useState<string>('');
   const [player2, setPlayer2] = useState<string>('');
   const [score1, setScore1] = useState<number>(0);
   const [score2, setScore2] = useState<number>(0);
   const [location, setLocation] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const currentTournament = tournaments.find(t => t.id === selectedTournament);
   const isCurrentTournamentGroupBased = currentTournament?.isGroupBased;
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const tournamentsResponse = await fetch(`${API_BASE_URL}/api/tournaments`);
-        const tournamentsData: Tournament[] = await tournamentsResponse.json();
-        setTournaments(tournamentsData);
+        const tournamentsResponse = await api.get<Tournament[]>('/tournaments');
+        setTournaments(tournamentsResponse.data);
 
-        const playersResponse = await fetch(`${API_BASE_URL}/api/players`);
-        const playersData: Player[] = await playersResponse.json();
-        setPlayers(playersData);
+        const playersResponse = await api.get<Player[]>('/players');
+        setPlayers(playersResponse.data);
 
-        const groupsResponse = await fetch(`${API_BASE_URL}/api/groups`); // Fetch groups
-        const groupsData: Group[] = await groupsResponse.json();
-        setGroups(groupsData);
-      } catch (error) {
-        console.error("Error fetching data for AddMatchPage:", error);
+        const groupsResponse = await api.get<Group[]>('/groups');
+        setGroups(groupsResponse.data);
+      } catch (err: any) {
+        console.error("Error fetching data for AddMatchPage:", err);
+        setError('Failed to load data for match creation.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -66,14 +86,16 @@ const AddMatchPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
 
     if (!selectedTournament || !player1 || !player2 || player1 === player2) {
-      alert("Please select a tournament and two different players.");
+      setError("Please select a tournament and two different players.");
       return;
     }
 
     if (isCurrentTournamentGroupBased && !selectedGroup) {
-      alert("Please select a group for this group-based tournament.");
+      setError("Please select a group for this group-based tournament.");
       return;
     }
 
@@ -84,164 +106,174 @@ const AddMatchPage: React.FC = () => {
       score1,
       score2,
       location,
-      groupId: isCurrentTournamentGroupBased ? selectedGroup : undefined, // Include groupId if group-based
+      groupId: isCurrentTournamentGroupBased ? selectedGroup : undefined,
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/matches`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newMatch),
-      });
+      await api.post('/matches', newMatch);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      alert('Match added successfully!');
+      setSuccessMessage('Match added successfully!');
       // Clear form
       setSelectedTournament('');
-      setSelectedGroup(''); // Reset selected group
+      setSelectedGroup('');
       setPlayer1('');
       setPlayer2('');
       setScore1(0);
       setScore2(0);
       setLocation('');
-    } catch (error) {
-      console.error("Error adding match:", error);
-      alert('Failed to add match.');
+    } catch (err: any) {
+      console.error("Error adding match:", err);
+      setError('Failed to add match.');
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">Add New Match Score</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label htmlFor="tournamentSelect" className="form-label">Tournament</label>
-          <select
-            className="form-select"
-            id="tournamentSelect"
-            value={selectedTournament}
-            onChange={(e) => {
-              setSelectedTournament(e.target.value);
-              setSelectedGroup(''); // Reset group when tournament changes
-              setPlayer1(''); // Reset players when tournament changes
-              setPlayer2('');
-            }}
-            required
-          >
-            <option value="">Select Tournament</option>
-            {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} {t.isGroupBased ? '(Group Based)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom>
+        Add New Match Score
+      </Typography>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : successMessage ? (
+        <Alert severity="success">{successMessage}</Alert>
+      ) : null}
 
-        {isCurrentTournamentGroupBased && (
-          <div className="mb-3">
-            <label htmlFor="groupSelect" className="form-label">Group</label>
-            <select
-              className="form-select"
-              id="groupSelect"
-              value={selectedGroup}
-              onChange={(e) => {
-                setSelectedGroup(e.target.value);
-                setPlayer1(''); // Reset players when group changes
-                setPlayer2('');
-              }}
+      <Card sx={{ p: 4, mt: 2 }}>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel id="tournament-select-label">Tournament</InputLabel>
+              <Select
+                labelId="tournament-select-label"
+                id="tournament-select"
+                value={selectedTournament}
+                label="Tournament"
+                onChange={(e) => {
+                  setSelectedTournament(e.target.value as string);
+                  setSelectedGroup('');
+                  setPlayer1('');
+                  setPlayer2('');
+                }}
+                required
+              >
+                <MenuItem value="">Select Tournament</MenuItem>
+                {tournaments.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.name} {t.isGroupBased ? '(Group Based)' : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {isCurrentTournamentGroupBased && (
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel id="group-select-label">Group</InputLabel>
+                <Select
+                  labelId="group-select-label"
+                  id="group-select"
+                  value={selectedGroup}
+                  label="Group"
+                  onChange={(e) => {
+                    setSelectedGroup(e.target.value as string);
+                    setPlayer1('');
+                    setPlayer2('');
+                  }}
+                  required
+                >
+                  <MenuItem value="">Select Group</MenuItem>
+                  {groups.filter(g => currentTournament && currentTournament.groupIds.includes(g.id)).map((g) => (
+                    <MenuItem key={g.id} value={g.id}>
+                      {g.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel id="player1-select-label">Player 1</InputLabel>
+              <Select
+                labelId="player1-select-label"
+                id="player1-select"
+                value={player1}
+                label="Player 1"
+                onChange={(e) => setPlayer1(e.target.value as string)}
+                required
+              >
+                <MenuItem value="">Select Player 1</MenuItem>
+                {availablePlayers.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel id="player2-select-label">Player 2</InputLabel>
+              <Select
+                labelId="player2-select-label"
+                id="player2-select"
+                value={player2}
+                label="Player 2"
+                onChange={(e) => setPlayer2(e.target.value as string)}
+                required
+              >
+                <MenuItem value="">Select Player 2</MenuItem>
+                {availablePlayers.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.firstName} {p.lastName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Player 1 Score"
+                  id="score1"
+                  type="number"
+                  value={score1}
+                  onChange={(e) => setScore1(parseInt(e.target.value))}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Player 2 Score"
+                  id="score2"
+                  type="number"
+                  value={score2}
+                  onChange={(e) => setScore2(parseInt(e.target.value))}
+                  required
+                />
+              </Grid>
+            </Grid>
+
+            <TextField
+              fullWidth
+              label="Match Location"
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
               required
-            >
-              <option value="">Select Group</option>
-              {groups.filter(g => currentTournament && currentTournament.groupIds.includes(g.id)).map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="mb-3">
-          <label htmlFor="player1Select" className="form-label">Player 1</label>
-          <select
-            className="form-select"
-            id="player1Select"
-            value={player1}
-            onChange={(e) => setPlayer1(e.target.value)}
-            required
-          >
-            <option value="">Select Player 1</option>
-            {availablePlayers.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.firstName} {p.lastName}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mb-3">
-          <label htmlFor="player2Select" className="form-label">Player 2</label>
-          <select
-            className="form-select"
-            id="player2Select"
-            value={player2}
-            onChange={(e) => setPlayer2(e.target.value)}
-            required
-          >
-            <option value="">Select Player 2</option>
-            {availablePlayers.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.firstName} {p.lastName}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="row mb-3">
-          <div className="col">
-            <label htmlFor="score1" className="form-label">Player 1 Score</label>
-            <input
-              type="number"
-              className="form-control"
-              id="score1"
-              value={score1}
-              onChange={(e) => setScore1(parseInt(e.target.value))}
-              required
+              sx={{ mb: 3 }}
             />
-          </div>
-          <div className="col">
-            <label htmlFor="score2" className="form-label">Player 2 Score</label>
-            <input
-              type="number"
-              className="form-control"
-              id="score2"
-              value={score2}
-              onChange={(e) => setScore2(parseInt(e.target.value))}
-              required
-            />
-          </div>
-        </div>
 
-        <div className="mb-3">
-          <label htmlFor="location" className="form-label">Match Location</label>
-          <input
-            type="text"
-            className="form-control"
-            id="location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
-          />
-        </div>
-
-        <button type="submit" className="btn btn-primary">Add Match</button>
-      </form>
-    </div>
+            <Button type="submit" variant="contained" color="primary">
+              Add Match
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </Box>
   );
 };
 

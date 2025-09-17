@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import AddPlayerForm from '../components/AddPlayerForm';
-import { API_BASE_URL } from '../apiConfig';
+import AddPlayerForm from '../components/AddPlayerForm'; // This will be converted to MUI later
+import { api } from '../apiConfig';
+import { Box, Typography, List, ListItem, ListItemText, Button, CircularProgress, IconButton } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Player {
   id: string;
@@ -16,17 +18,20 @@ interface PlayersPageProps {
 
 const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
   const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPlayers = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/players`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: Player[] = await response.json();
-      setPlayers(data);
-    } catch (error) {
-      console.error("Error fetching players:", error);
+      const response = await api.get<Player[]>('/players');
+      setPlayers(response.data);
+    } catch (err: any) {
+      console.error("Error fetching players:", err);
+      setError('Failed to fetch players.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,46 +45,54 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
 
   const handleRemovePlayer = async (id: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/players/${id}`,
-        {
-          method: 'DELETE',
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      await api.delete(`/players/${id}`);
       fetchPlayers(); // Refresh the list after a player is removed
-    } catch (error) {
-      console.error("Error removing player:", error);
+    } catch (err: any) {
+      console.error("Error removing player:", err);
+      setError('Failed to remove player.');
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">Players</h2>
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h4" component="h2" gutterBottom>
+        Players
+      </Typography>
       {isAdminLoggedIn && <AddPlayerForm onPlayerAdded={handlePlayerAdded} />}
 
-      <h3 className="mt-5">Current Players</h3>
-      {players.length === 0 ? (
-        <p>No players added yet.</p>
+      <Typography variant="h5" component="h3" sx={{ mt: 5, mb: 2 }}>
+        Current Players
+      </Typography>
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Typography color="error">{error}</Typography>
+      ) : players.length === 0 ? (
+        <Typography>No players added yet.</Typography>
       ) : (
-        <ul className="list-group">
-          {players.map(player => (
-            <li key={player.id} className="list-group-item d-flex justify-content-between align-items-center">
-              {player.firstName} {player.lastName} ({player.location}) - Ranking: {player.ranking}
-              {isAdminLoggedIn && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => handleRemovePlayer(player.id)}
-                >
-                  Remove
-                </button>
-              )}
-            </li>
+        <List>
+          {players.map((player) => (
+            <ListItem
+              key={player.id}
+              secondaryAction={
+                isAdminLoggedIn && (
+                  <IconButton edge="end" aria-label="delete" onClick={() => handleRemovePlayer(player.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                )
+              }
+            >
+              <ListItemText
+                primary={`${player.firstName} ${player.lastName} (${player.location})`}
+                secondary={`Ranking: ${player.ranking}`}
+              />
+            </ListItem>
           ))}
-        </ul>
+        </List>
       )}
-    </div>
+    </Box>
   );
 };
 

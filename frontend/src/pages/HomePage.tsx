@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from 'react-bootstrap';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 const HomePage: React.FC = () => {
   const style = {
@@ -8,7 +10,7 @@ const HomePage: React.FC = () => {
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
-    height: 'calc(100vh - 56px)',
+    height: 'calc(100vh - 64px)', // Adjust for AppBar height (default 64px)
     display: 'flex',
     flexDirection: 'column' as 'column',
     justifyContent: 'center',
@@ -19,16 +21,20 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div style={style} className="text-center">
-      <h1 className="display-2 fw-bold mb-4">Tennis Championship of Toronto Brothers</h1>
-      <p className="lead fs-3 mb-4">The ultimate tournament experience.</p>
-      <p className="fs-5 mb-5">Follow the action, view match results, and see who comes out on top.</p>
-      <Link to="/rankings">
-        <Button variant="light" size="lg">
-          View Player Rankings
-        </Button>
-      </Link>
-    </div>
+    <Box sx={style}>
+      <Typography variant="h2" component="h1" sx={{ fontWeight: 'bold', mb: 4 }}>
+        Tennis Championship of Toronto Brothers
+      </Typography>
+      <Typography variant="h5" component="p" sx={{ mb: 4 }}>
+        The ultimate tournament experience.
+      </Typography>
+      <Typography variant="body1" component="p" sx={{ mb: 5 }}>
+        Follow the action, view match results, and see who comes out on top.
+      </Typography>
+      <Button variant="contained" size="large" component={Link} to="/rankings">
+        View Player Rankings
+      </Button>
+    </Box>
   );
 };
 
