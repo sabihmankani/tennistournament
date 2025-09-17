@@ -12,7 +12,8 @@ import {
   MenuItem,
   Grid,
   CircularProgress,
-  Alert
+  Alert,
+  Paper // Added Paper for consistent styling
 } from '@mui/material';
 
 interface Player {
@@ -141,34 +142,36 @@ const RankingsPage: React.FC = () => {
               <CircularProgress />
             </Box>
           ) : errorOverall ? (
-            <Alert severity="error">{errorOverall}</Alert>
+            <Alert severity="error" sx={{ mt: 2 }}>{errorOverall}</Alert>
           ) : overallRankings.length === 0 ? (
-            <Typography>No overall rankings available yet.</Typography>
+            <Typography sx={{ mt: 2 }}>No overall rankings available yet.</Typography>
           ) : (
-            <List>
-              {overallRankings.map((ranking: PlayerRanking, index: number) => (
-                <ListItem key={ranking.player.id}>
-                  <ListItemText
-                    primary={
-                      <Typography variant="h6">
-                        {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
-                      </Typography>
-                    }
-                    secondary={
-                      <>
-                        <Typography component="span" variant="body2" color="text.secondary">
-                          Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
+            <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
+              <List>
+                {overallRankings.map((ranking: PlayerRanking, index: number) => (
+                  <ListItem key={ranking.player.id}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="h6">
+                          {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
                         </Typography>
-                        <br />
-                        <Typography component="span" variant="body2" color="text.secondary">
-                          Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
-                        </Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+                      }
+                      secondary={
+                        <>
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
+                          </Typography>
+                          <br />
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
+                          </Typography>
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
           )}
         </Grid>
 
@@ -184,6 +187,7 @@ const RankingsPage: React.FC = () => {
               value={selectedTournament}
               label="Select Tournament"
               onChange={(e) => setSelectedTournament(e.target.value as string)}
+              variant="outlined" // Material 3 default
             >
               <MenuItem value="">-- Select a Tournament --</MenuItem>
               {tournaments.map((tournament: Tournament) => (
@@ -199,7 +203,7 @@ const RankingsPage: React.FC = () => {
               <CircularProgress />
             </Box>
           ) : errorTournament ? (
-            <Alert severity="error">{errorTournament}</Alert>
+            <Alert severity="error" sx={{ mt: 2 }}>{errorTournament}</Alert>
           ) : selectedTournament && selectedTournamentDetails?.isGroupBased ? (
             // Display group-based rankings
             <Box>
@@ -208,12 +212,12 @@ const RankingsPage: React.FC = () => {
                 const rankings = groupRankings[groupId] || [];
 
                 return (
-                  <Box key={groupId} sx={{ mb: 4 }}>
+                  <Paper key={groupId} elevation={2} sx={{ mb: 4, p: 2 }}> {/* Wrap group rankings in Paper */}
                     <Typography variant="h6" component="h4" gutterBottom>
                       {group?.name || 'Unknown Group'} Rankings
                     </Typography>
                     {rankings.length === 0 ? (
-                      <Typography>No rankings for this group yet.</Typography>
+                      <Typography sx={{ mt: 2 }}>No rankings for this group yet.</Typography>
                     ) : (
                       <List>
                         {rankings.map((ranking: PlayerRanking, index: number) => (
@@ -240,40 +244,42 @@ const RankingsPage: React.FC = () => {
                         ))}
                       </List>
                     )}
-                  </Box>
+                  </Paper>
                 );
               })}
             </Box>
           ) : selectedTournament && tournamentRankings.length > 0 ? (
             // Display non-group-based rankings
-            <List>
-              {tournamentRankings.map((ranking: PlayerRanking, index: number) => (
-                <ListItem key={ranking.player.id}>
-                  <ListItemText
-                    primary={
-                      <Typography variant="h6">
-                        {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
-                      </Typography>
-                    }
-                    secondary={
-                      <>
-                        <Typography component="span" variant="body2" color="text.secondary">
-                          Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
+            <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
+              <List>
+                {tournamentRankings.map((ranking: PlayerRanking, index: number) => (
+                  <ListItem key={ranking.player.id}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="h6">
+                          {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
                         </Typography>
-                        <br />
-                        <Typography component="span" variant="body2" color="text.secondary">
-                          Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
-                        </Typography>
-                      </>
-                    }
-                  />
-                </ListItem>
-              ))}
-            </List>
+                      }
+                      secondary={
+                        <>
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
+                            </Typography>
+                          <br />
+                          <Typography component="span" variant="body2" color="text.secondary">
+                            Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
+                          </Typography>
+                        </>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
           ) : selectedTournament ? (
-            <Typography>No rankings available for this tournament yet.</Typography>
+            <Typography sx={{ mt: 2 }}>No rankings available for this tournament yet.</Typography>
           ) : (
-            <Typography>Select a tournament to view its rankings.</Typography>
+            <Typography sx={{ mt: 2 }}>Select a tournament to view its rankings.</Typography>
           )}
         </Grid>
       </Grid>
