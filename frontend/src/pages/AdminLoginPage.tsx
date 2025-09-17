@@ -46,7 +46,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
     <Container maxWidth="sm" sx={{ mt: 5 }}>
       <Grid container justifyContent="center">
         <Grid item xs={12}>
-          <Card>
+          <Card elevation={3}> {/* Added elevation for Material 3 feel */}
             <CardContent sx={{ p: 4 }}>
               <Typography variant="h5" component="h2" align="center" gutterBottom>
                 Admin Login
@@ -61,6 +61,7 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
+                    variant="outlined" // Material 3 default
                   />
                 </Box>
                 <Box sx={{ mb: 3 }}>
@@ -72,9 +73,10 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    variant="outlined" // Material 3 default
                   />
                 </Box>
-                <Button type="submit" variant="contained" color="primary" fullWidth>
+                <Button type="submit" variant="contained" color="primary" fullWidth size="large"> {/* Added size for Material 3 feel */}
                   Login
                 </Button>
               </form>
