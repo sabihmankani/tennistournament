@@ -238,7 +238,7 @@ const AddMatchPage: React.FC = () => {
             </FormControl>
 
             <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} component="div"> {/* Added component="div" */}
                 <TextField
                   fullWidth
                   label="Player 1 Score"
@@ -250,7 +250,7 @@ const AddMatchPage: React.FC = () => {
                   variant="outlined" // Material 3 default
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={6} component="div"> {/* Added component="div" */}
                 <TextField
                   fullWidth
                   label="Player 2 Score"
