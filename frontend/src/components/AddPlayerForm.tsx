@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../apiConfig';
-import { Box, TextField, Button, Typography, Card, CardContent } from '@mui/material';
+import { Box, TextField, Button, Typography, Card, CardContent, Alert } from '@mui/material';
 
 interface AddPlayerFormProps {
   onPlayerAdded: () => void;
@@ -11,9 +11,14 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
   const [lastName, setLastName] = useState('');
   const [location, setLocation] = useState('');
   const [ranking, setRanking] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
     const newPlayer = { firstName, lastName, location, ranking };
 
     try {
@@ -23,18 +28,22 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
       setLastName('');
       setLocation('');
       setRanking(0);
+      setSuccess('Player added successfully!');
       onPlayerAdded(); // Notify parent component to refresh player list
-    } catch (error) {
-      console.error("Error adding player:", error);
+    } catch (err: any) {
+      console.error("Error adding player:", err.response ? err.response.data : err.message);
+      setError(err.response && err.response.data && err.response.data.message ? err.response.data.message : 'Failed to add player.');
     }
   };
 
   return (
-    <Card sx={{ p: 4, mb: 4 }}>
+    <Card elevation={3} sx={{ p: 4, mb: 4 }}> {/* Added elevation for Material 3 feel */}
       <CardContent>
         <Typography variant="h5" component="h3" gutterBottom>
           Add New Player
         </Typography>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
         <form onSubmit={handleSubmit}>
           <Box sx={{ mb: 3 }}>
             <TextField
@@ -44,6 +53,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
+              variant="outlined" // Material 3 default
             />
           </Box>
           <Box sx={{ mb: 3 }}>
@@ -54,6 +64,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
+              variant="outlined" // Material 3 default
             />
           </Box>
           <Box sx={{ mb: 3 }}>
@@ -64,6 +75,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               required
+              variant="outlined" // Material 3 default
             />
           </Box>
           <Box sx={{ mb: 3 }}>
@@ -75,9 +87,10 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={ranking}
               onChange={(e) => setRanking(parseInt(e.target.value))}
               required
+              variant="outlined" // Material 3 default
             />
           </Box>
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary" size="large"> {/* Added size for Material 3 feel */}
             Add Player
           </Button>
         </form>
