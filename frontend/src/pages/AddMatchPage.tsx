@@ -13,7 +13,8 @@ import {
   CardContent,
   Grid,
   CircularProgress,
-  Alert
+  Alert,
+  Paper // Added Paper for consistent styling
 } from '@mui/material';
 
 interface Player {
@@ -137,12 +138,12 @@ const AddMatchPage: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       ) : successMessage ? (
-        <Alert severity="success">{successMessage}</Alert>
+        <Alert severity="success" sx={{ mt: 2 }}>{successMessage}</Alert>
       ) : null}
 
-      <Card sx={{ p: 4, mt: 2 }}>
+      <Card elevation={3} sx={{ p: 4, mt: 2 }}> {/* Added elevation for Material 3 feel */}
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FormControl fullWidth sx={{ mb: 3 }}>
@@ -159,6 +160,7 @@ const AddMatchPage: React.FC = () => {
                   setPlayer2('');
                 }}
                 required
+                variant="outlined" // Material 3 default
               >
                 <MenuItem value="">Select Tournament</MenuItem>
                 {tournaments.map((t) => (
@@ -183,6 +185,7 @@ const AddMatchPage: React.FC = () => {
                     setPlayer2('');
                   }}
                   required
+                  variant="outlined" // Material 3 default
                 >
                   <MenuItem value="">Select Group</MenuItem>
                   {groups.filter(g => currentTournament && currentTournament.groupIds.includes(g.id)).map((g) => (
@@ -203,6 +206,7 @@ const AddMatchPage: React.FC = () => {
                 label="Player 1"
                 onChange={(e) => setPlayer1(e.target.value as string)}
                 required
+                variant="outlined" // Material 3 default
               >
                 <MenuItem value="">Select Player 1</MenuItem>
                 {availablePlayers.map((p) => (
@@ -222,6 +226,7 @@ const AddMatchPage: React.FC = () => {
                 label="Player 2"
                 onChange={(e) => setPlayer2(e.target.value as string)}
                 required
+                variant="outlined" // Material 3 default
               >
                 <MenuItem value="">Select Player 2</MenuItem>
                 {availablePlayers.map((p) => (
@@ -242,6 +247,7 @@ const AddMatchPage: React.FC = () => {
                   value={score1}
                   onChange={(e) => setScore1(parseInt(e.target.value))}
                   required
+                  variant="outlined" // Material 3 default
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -253,6 +259,7 @@ const AddMatchPage: React.FC = () => {
                   value={score2}
                   onChange={(e) => setScore2(parseInt(e.target.value))}
                   required
+                  variant="outlined" // Material 3 default
                 />
               </Grid>
             </Grid>
@@ -265,9 +272,10 @@ const AddMatchPage: React.FC = () => {
               onChange={(e) => setLocation(e.target.value)}
               required
               sx={{ mb: 3 }}
+              variant="outlined" // Material 3 default
             />
 
-            <Button type="submit" variant="contained" color="primary">
+            <Button type="submit" variant="contained" color="primary" size="large"> {/* Added size for Material 3 feel */}
               Add Match
             </Button>
           </form>
