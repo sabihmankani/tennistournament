@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import AddPlayerForm from '../components/AddPlayerForm'; // This will be converted to MUI later
+import AddPlayerForm from '../components/AddPlayerForm';
 import { api } from '../apiConfig';
-import { Box, Typography, List, ListItem, ListItemText, Button, CircularProgress, IconButton } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemText, CircularProgress, IconButton, Paper } from '@mui/material'; // Added Paper
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Player {
@@ -30,8 +30,6 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
     } catch (err: any) {
       console.error("Error fetching players:", err);
       setError('Failed to fetch players.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -68,29 +66,31 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Typography color="error">{error}</Typography>
+        <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>
       ) : players.length === 0 ? (
-        <Typography>No players added yet.</Typography>
+        <Typography sx={{ mt: 2 }}>No players added yet.</Typography>
       ) : (
-        <List>
-          {players.map((player) => (
-            <ListItem
-              key={player.id}
-              secondaryAction={
-                isAdminLoggedIn && (
-                  <IconButton edge="end" aria-label="delete" onClick={() => handleRemovePlayer(player.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                )
-              }
-            >
-              <ListItemText
-                primary={`${player.firstName} ${player.lastName} (${player.location})`}
-                secondary={`Ranking: ${player.ranking}`}
-              />
-            </ListItem>
-          ))}
-        </List>
+        <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
+          <List>
+            {players.map((player) => (
+              <ListItem
+                key={player.id}
+                secondaryAction={
+                  isAdminLoggedIn && (
+                    <IconButton edge="end" aria-label="delete" onClick={() => handleRemovePlayer(player.id)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  )
+                }
+              >
+                <ListItemText
+                  primary={`${player.firstName} ${player.lastName} (${player.location})`}
+                  secondary={`Ranking: ${player.ranking}`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
       )}
     </Box>
   );
