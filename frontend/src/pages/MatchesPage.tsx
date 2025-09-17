@@ -8,7 +8,8 @@ import {
   ListItemText,
   IconButton,
   CircularProgress,
-  Alert
+  Alert,
+  Paper // Added Paper for consistent styling
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -102,42 +103,39 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error">{error}</Alert>
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       ) : matches.length === 0 ? (
-        <Typography>No matches recorded yet.</Typography>
+        <Typography sx={{ mt: 2 }}>No matches recorded yet.</Typography>
       ) : (
-        <List>
-          {matches.map((match) => (
-            <ListItem
-              key={match.id}
-              secondaryAction={
-                isAdminLoggedIn && (
-                  <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteMatch(match.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                )
-              }
-            >
-              <ListItemText
-                primary={
-                  <>
+        <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
+          <List>
+            {matches.map((match) => (
+              <ListItem
+                key={match.id}
+                secondaryAction={
+                  isAdminLoggedIn && (
+                    <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteMatch(match.id)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  )
+                }
+              >
+                <ListItemText
+                  primary={
                     <Typography component="span" variant="body1" color="text.primary">
-                      {getTournamentName(match.tournamentId)}:
-                    </Typography>{
-                    <Typography component="span" variant="body1" color="text.secondary">
-                      {` ${getPlayerName(match.player1Id)} ${match.score1} - ${match.score2} ${getPlayerName(match.player2Id)}`}
-                    </Typography>}
-                  </>
-                }
-                secondary={
-                  <Typography component="span" variant="body2" color="text.secondary">
-                    Location: {match.location} | Date: {new Date(match.date).toLocaleDateString()}
-                  </Typography>
-                }
-              />
-            </ListItem>
-          ))}
-        </List>
+                      {getTournamentName(match.tournamentId)}: {getPlayerName(match.player1Id)} {match.score1} - {match.score2} {getPlayerName(match.player2Id)}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography component="span" variant="body2" color="text.secondary">
+                      Location: {match.location} | Date: {new Date(match.date).toLocaleDateString()}
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
       )}
     </Box>
   );
