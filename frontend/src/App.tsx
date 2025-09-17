@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+
+// import Navbar from './components/Navbar'; // Will replace with MUI AppBar
 
 import HomePage from './pages/HomePage';
 import PlayersPage from './pages/PlayersPage';
@@ -11,6 +14,19 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import RankingsPage from './pages/RankingsPage';
 import MatchesPage from './pages/MatchesPage';
 import GroupsPage from './pages/GroupsPage';
+import MuiNavbar from './components/MuiNavbar';
+
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#90caf9',
+    },
+    secondary: {
+      main: '#f48fb1',
+    },
+  },
+});
 
 function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
@@ -24,22 +40,25 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <Navbar isAdminLoggedIn={isAdminLoggedIn} onLoginStatusChange={handleLoginStatusChange} />
-      <div className="container mt-4">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/players" element={<PlayersPage isAdminLoggedIn={isAdminLoggedIn} />} />
-          <Route path="/tournaments" element={<TournamentsPage isAdminLoggedIn={isAdminLoggedIn} />} />
-          <Route path="/groups" element={<GroupsPage />} />
-          <Route path="/add-match" element={<AddMatchPage />} />
-          <Route path="/matches" element={<MatchesPage isAdminLoggedIn={isAdminLoggedIn} />} />
-          <Route path="/rankings" element={<RankingsPage />} />
-          <Route path="/admin" element={<AdminLoginPage onLoginSuccess={() => handleLoginStatusChange(true)} />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-        </Routes>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <div className="App">
+        <MuiNavbar isAdminLoggedIn={isAdminLoggedIn} onLoginStatusChange={handleLoginStatusChange} />
+        <div className="container mt-4">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/players" element={<PlayersPage isAdminLoggedIn={isAdminLoggedIn} />} />
+            <Route path="/tournaments" element={<TournamentsPage isAdminLoggedIn={isAdminLoggedIn} />} />
+            <Route path="/groups" element={<GroupsPage />} />
+            <Route path="/add-match" element={<AddMatchPage />} />
+            <Route path="/matches" element={<MatchesPage isAdminLoggedIn={isAdminLoggedIn} />} />
+            <Route path="/rankings" element={<RankingsPage />} />
+            <Route path="/admin" element={<AdminLoginPage onLoginSuccess={() => handleLoginStatusChange(true)} />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          </Routes>
+        </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
 
