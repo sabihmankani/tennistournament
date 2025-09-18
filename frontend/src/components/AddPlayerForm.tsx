@@ -37,7 +37,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
   };
 
   return (
-    <Card elevation={3} sx={{ p: 4, mb: 4 }}> {/* Added elevation for Material 3 feel */}
+    <Card variant="outlined" sx={{ p: 4, mb: 4 }}>
       <CardContent>
         <Typography variant="h5" component="h3" gutterBottom>
           Add New Player
@@ -53,7 +53,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               required
-              variant="outlined" // Material 3 default
+              variant="outlined"
             />
           </Box>
           <Box sx={{ mb: 3 }}>
@@ -64,7 +64,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
-              variant="outlined" // Material 3 default
+              variant="outlined"
             />
           </Box>
           <Box sx={{ mb: 3 }}>
@@ -75,7 +75,7 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               required
-              variant="outlined" // Material 3 default
+              variant="outlined"
             />
           </Box>
           <Box sx={{ mb: 3 }}>
@@ -87,10 +87,10 @@ const AddPlayerForm: React.FC<AddPlayerFormProps> = ({ onPlayerAdded }) => {
               value={ranking}
               onChange={(e) => setRanking(parseInt(e.target.value))}
               required
-              variant="outlined" // Material 3 default
+              variant="outlined"
             />
           </Box>
-          <Button type="submit" variant="contained" color="primary" size="large"> {/* Added size for Material 3 feel */}
+          <Button type="submit" variant="contained" color="primary" size="large">
             Add Player
           </Button>
         </form>

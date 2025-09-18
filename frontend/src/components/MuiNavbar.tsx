@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -20,6 +20,7 @@ interface MuiNavbarProps {
 
 const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusChange }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLogout = () => {
@@ -48,9 +49,16 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
     { name: 'Rankings', path: '/rankings', adminOnly: false },
   ];
 
+  const isActive = (path: string) => location.pathname === path;
+
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
+      <AppBar 
+        position="sticky" 
+        color="transparent" 
+        elevation={0}
+        sx={{ backdropFilter: 'blur(20px)', borderBottom: '1px solid', borderColor: 'divider' }}
+      >
         <Toolbar>
           <IconButton
             size="large"
@@ -70,17 +78,24 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
             {navItems.map((item) => (
               (!item.adminOnly || isAdminLoggedIn) && (
-                <Button key={item.name} color="inherit" component={Link} to={item.path}>
+                <Button 
+                  key={item.name} 
+                  variant={isActive(item.path) ? "contained" : "text"}
+                  color="inherit" 
+                  component={Link} 
+                  to={item.path}
+                  sx={{ my: 1, mx: 1.5 }}
+                >
                   {item.name}
                 </Button>
               )
             ))}
             {isAdminLoggedIn ? (
-              <Button color="inherit" onClick={handleLogout}>
+              <Button color="inherit" onClick={handleLogout} variant="outlined" sx={{ my: 1, mx: 1.5 }}>
                 Logout
               </Button>
             ) : (
-              <Button color="inherit" component={Link} to="/admin">
+              <Button color="inherit" component={Link} to="/admin" variant="outlined" sx={{ my: 1, mx: 1.5 }}>
                 Admin Login
               </Button>
             )}
@@ -93,7 +108,7 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
         onClose={toggleDrawer(false)}
       >
         <Box
-          sx={{ width: 250 }}
+          sx={{ width: 280, bgcolor: 'background.default' }}
           role="presentation"
           onClick={toggleDrawer(false)}
           onKeyDown={toggleDrawer(false)}
@@ -102,7 +117,7 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
             {navItems.map((item) => (
               (!item.adminOnly || isAdminLoggedIn) && (
                 <ListItem key={item.name} disablePadding>
-                  <ListItemButton component={Link} to={item.path}>
+                  <ListItemButton component={Link} to={item.path} selected={isActive(item.path)}>
                     <ListItemText primary={item.name} />
                   </ListItemButton>
                 </ListItem>

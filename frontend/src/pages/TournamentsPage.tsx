@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import AddTournamentForm from '../components/AddTournamentForm';
 import { api } from '../apiConfig';
-import { Box, Typography, List, ListItem, ListItemText, CircularProgress, IconButton, Paper } from '@mui/material'; // Added Paper
+import { 
+  Box, 
+  Typography, 
+  CircularProgress, 
+  IconButton, 
+  Container, 
+  Grid, 
+  Card, 
+  CardContent, 
+  CardActions, 
+  Alert 
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Tournament {
@@ -54,7 +65,7 @@ const TournamentsPage: React.FC<TournamentsPageProps> = ({ isAdminLoggedIn }) =>
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
+    <Container sx={{ mt: 4 }}>
       <Typography variant="h4" component="h2" gutterBottom>
         Tournaments
       </Typography>
@@ -68,30 +79,30 @@ const TournamentsPage: React.FC<TournamentsPageProps> = ({ isAdminLoggedIn }) =>
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       ) : tournaments.length === 0 ? (
-        <Typography sx={{ mt: 2 }}>No tournaments added yet.</Typography>
+        <Alert severity="info" sx={{ mt: 2 }}>No tournaments added yet.</Alert>
       ) : (
-        <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
-          <List>
-            {tournaments.map((tournament) => (
-              <ListItem
-                key={tournament.id}
-                secondaryAction={
-                  isAdminLoggedIn && (
+        <Grid container spacing={3}>
+          {tournaments.map((tournament) => (
+            <Grid item xs={12} sm={6} md={4} key={tournament.id}>
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography variant="h6">{tournament.name}</Typography>
+                </CardContent>
+                {isAdminLoggedIn && (
+                  <CardActions>
                     <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteTournament(tournament.id)}>
                       <DeleteIcon />
                     </IconButton>
-                  )
-                }
-              >
-                <ListItemText primary={tournament.name} />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+                  </CardActions>
+                )}
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       )}
-    </Box>
+    </Container>
   );
 };
 

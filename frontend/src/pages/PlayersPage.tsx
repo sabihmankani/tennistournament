@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import AddPlayerForm from '../components/AddPlayerForm';
 import { api } from '../apiConfig';
-import { Box, Typography, List, ListItem, ListItemText, CircularProgress, IconButton, Paper } from '@mui/material'; // Added Paper
+import { 
+  Box, 
+  Typography, 
+  CircularProgress, 
+  IconButton, 
+  Container, 
+  Grid, 
+  Card, 
+  CardContent, 
+  CardActions, 
+  Alert 
+} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Player {
@@ -52,7 +63,7 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
+    <Container sx={{ mt: 4 }}>
       <Typography variant="h4" component="h2" gutterBottom>
         Players
       </Typography>
@@ -66,33 +77,32 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>
+        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       ) : players.length === 0 ? (
-        <Typography sx={{ mt: 2 }}>No players added yet.</Typography>
+        <Alert severity="info" sx={{ mt: 2 }}>No players added yet.</Alert>
       ) : (
-        <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
-          <List>
-            {players.map((player) => (
-              <ListItem
-                key={player.id}
-                secondaryAction={
-                  isAdminLoggedIn && (
+        <Grid container spacing={3}>
+          {players.map((player) => (
+            <Grid item xs={12} sm={6} md={4} key={player.id}>
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography variant="h6">{`${player.firstName} ${player.lastName}`}</Typography>
+                  <Typography color="text.secondary">{player.location}</Typography>
+                  <Typography>Ranking: {player.ranking}</Typography>
+                </CardContent>
+                {isAdminLoggedIn && (
+                  <CardActions>
                     <IconButton edge="end" aria-label="delete" onClick={() => handleRemovePlayer(player.id)}>
                       <DeleteIcon />
                     </IconButton>
-                  )
-                }
-              >
-                <ListItemText
-                  primary={`${player.firstName} ${player.lastName} (${player.location})`}
-                  secondary={`Ranking: ${player.ranking}`}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+                  </CardActions>
+                )}
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       )}
-    </Box>
+    </Container>
   );
 };
 

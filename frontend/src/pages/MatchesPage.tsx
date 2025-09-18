@@ -3,13 +3,14 @@ import { api } from '../apiConfig';
 import {
   Box,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
   IconButton,
   CircularProgress,
   Alert,
-  Paper // Added Paper for consistent styling
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  CardActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
@@ -94,7 +95,7 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
+    <Container sx={{ mt: 4 }}>
       <Typography variant="h4" component="h2" gutterBottom>
         All Matches
       </Typography>
@@ -105,39 +106,37 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
       ) : error ? (
         <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       ) : matches.length === 0 ? (
-        <Typography sx={{ mt: 2 }}>No matches recorded yet.</Typography>
+        <Alert severity="info" sx={{ mt: 2 }}>No matches recorded yet.</Alert>
       ) : (
-        <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
-          <List>
-            {matches.map((match) => (
-              <ListItem
-                key={match.id}
-                secondaryAction={
-                  isAdminLoggedIn && (
+        <Grid container spacing={3}>
+          {matches.map((match) => (
+            <Grid item xs={12} md={6} key={match.id}>
+              <Card elevation={2}>
+                <CardContent>
+                  <Typography variant="h6">{getTournamentName(match.tournamentId)}</Typography>
+                  <Typography variant="body1" color="text.primary">
+                    {getPlayerName(match.player1Id)} {match.score1} - {match.score2} {getPlayerName(match.player2Id)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Location: {match.location}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Date: {new Date(match.date).toLocaleDateString()}
+                  </Typography>
+                </CardContent>
+                {isAdminLoggedIn && (
+                  <CardActions>
                     <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteMatch(match.id)}>
                       <DeleteIcon />
                     </IconButton>
-                  )
-                }
-              >
-                <ListItemText
-                  primary={
-                    <Typography component="span" variant="body1" color="text.primary">
-                      {getTournamentName(match.tournamentId)}: {getPlayerName(match.player1Id)} {match.score1} - {match.score2} {getPlayerName(match.player2Id)}
-                    </Typography>
-                  }
-                  secondary={
-                    <Typography component="span" variant="body2" color="text.secondary">
-                      Location: {match.location} | Date: {new Date(match.date).toLocaleDateString()}
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
+                  </CardActions>
+                )}
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       )}
-    </Box>
+    </Container>
   );
 };
 

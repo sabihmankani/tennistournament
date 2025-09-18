@@ -3,9 +3,6 @@ import { api } from '../apiConfig';
 import {
   Box,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
   FormControl,
   InputLabel,
   Select,
@@ -13,7 +10,13 @@ import {
   Grid,
   CircularProgress,
   Alert,
-  Paper // Added Paper for consistent styling
+  Card,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 
 interface Player {
@@ -124,7 +127,40 @@ const RankingsPage: React.FC = () => {
     fetchTournamentRankings();
   }, [selectedTournament, tournaments]);
 
-  const selectedTournamentDetails = tournaments.find(t => t.id === selectedTournament);
+  const RankingsTable: React.FC<{ rankings: PlayerRanking[] }> = ({ rankings }) => (
+  <TableContainer component={Card} variant="outlined">
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell>Rank</TableCell>
+          <TableCell>Player</TableCell>
+          <TableCell>Wins</TableCell>
+          <TableCell>Losses</TableCell>
+          <TableCell>W/L Ratio</TableCell>
+          <TableCell>Sets Won</TableCell>
+          <TableCell>Sets Lost</TableCell>
+          <TableCell>Sets Ratio</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {rankings.map((ranking, index) => (
+          <TableRow key={ranking.player.id}>
+            <TableCell>{index + 1}</TableCell>
+            <TableCell>{`${ranking.player.firstName} ${ranking.player.lastName}`}</TableCell>
+            <TableCell>{ranking.wins}</TableCell>
+            <TableCell>{ranking.losses}</TableCell>
+            <TableCell>{ranking.winLossRatio.toFixed(2)}</TableCell>
+            <TableCell>{ranking.setsWon}</TableCell>
+            <TableCell>{ranking.setsLost}</TableCell>
+            <TableCell>{ranking.setsRatio.toFixed(2)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+);
+
+const selectedTournamentDetails = tournaments.find(t => t.id === selectedTournament);
 
   return (
     <Box sx={{ mt: 4 }}>
@@ -146,32 +182,7 @@ const RankingsPage: React.FC = () => {
           ) : overallRankings.length === 0 ? (
             <Typography sx={{ mt: 2 }}>No overall rankings available yet.</Typography>
           ) : (
-            <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
-              <List>
-                {overallRankings.map((ranking: PlayerRanking, index: number) => (
-                  <ListItem key={ranking.player.id}>
-                    <ListItemText
-                      primary={
-                        <Typography variant="h6">
-                          {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
-                        </Typography>
-                      }
-                      secondary={
-                        <>
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
-                          </Typography>
-                          <br />
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
-                          </Typography>
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
+            <RankingsTable rankings={overallRankings} />
           )}
         </Grid>
 
@@ -212,70 +223,22 @@ const RankingsPage: React.FC = () => {
                 const rankings = groupRankings[groupId] || [];
 
                 return (
-                  <Paper key={groupId} elevation={2} sx={{ mb: 4, p: 2 }}> {/* Wrap group rankings in Paper */}
+                  <Card key={groupId} variant="outlined" sx={{ mb: 4, p: 2 }}>
                     <Typography variant="h6" component="h4" gutterBottom>
                       {group?.name || 'Unknown Group'} Rankings
                     </Typography>
                     {rankings.length === 0 ? (
                       <Typography sx={{ mt: 2 }}>No rankings for this group yet.</Typography>
                     ) : (
-                      <List>
-                        {rankings.map((ranking: PlayerRanking, index: number) => (
-                          <ListItem key={ranking.player.id}>
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1">
-                                  {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
-                                </Typography>
-                              }
-                              secondary={
-                                <>
-                                  <Typography component="span" variant="body2" color="text.secondary">
-                                    Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
-                                  </Typography>
-                                  <br />
-                                  <Typography component="span" variant="body2" color="text.secondary">
-                                    Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
-                                  </Typography>
-                                </>
-                              }
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
+                      <RankingsTable rankings={rankings} />
                     )}
-                  </Paper>
+                  </Card>
                 );
               })}
             </Box>
           ) : selectedTournament && tournamentRankings.length > 0 ? (
             // Display non-group-based rankings
-            <Paper elevation={2} sx={{ mt: 2 }}> {/* Wrap list in Paper for Material 3 feel */}
-              <List>
-                {tournamentRankings.map((ranking: PlayerRanking, index: number) => (
-                  <ListItem key={ranking.player.id}>
-                    <ListItemText
-                      primary={
-                        <Typography variant="h6">
-                          {index + 1}. {ranking.player.firstName} {ranking.player.lastName}
-                        </Typography>
-                      }
-                      secondary={
-                        <>
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            Wins: {ranking.wins}, Losses: {ranking.losses} (Ratio: {ranking.winLossRatio.toFixed(2)})
-                            </Typography>
-                          <br />
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            Sets Won: {ranking.setsWon}, Sets Lost: {ranking.setsLost} (Ratio: {ranking.setsRatio.toFixed(2)})
-                          </Typography>
-                        </>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
+            <RankingsTable rankings={tournamentRankings} />
           ) : selectedTournament ? (
             <Typography sx={{ mt: 2 }}>No rankings available for this tournament yet.</Typography>
           ) : (

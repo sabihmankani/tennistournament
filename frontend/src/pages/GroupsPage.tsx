@@ -16,7 +16,7 @@ import {
   CircularProgress,
   Alert,
   Grid,
-  Paper // Added Paper for consistent styling
+  Container
 } from '@mui/material';
 
 interface Player {
@@ -112,7 +112,7 @@ const GroupsPage = () => {
   };
 
   return (
-    <Box sx={{ mt: 4 }}>
+    <Container sx={{ mt: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Group Management
       </Typography>
@@ -124,7 +124,7 @@ const GroupsPage = () => {
       ) : error ? (
         <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
       ) : (
-        <Paper elevation={2} sx={{ p: 3, mt: 2 }}> {/* Wrap content in Paper for Material 3 feel */}
+        <Card variant="outlined" sx={{ p: 3, mt: 2 }}>
           <FormControl fullWidth sx={{ mb: 3 }}>
             <InputLabel id="tournament-select-label">Select Tournament</InputLabel>
             <Select
@@ -133,7 +133,7 @@ const GroupsPage = () => {
               value={selectedTournament}
               label="Select Tournament"
               onChange={(e) => setSelectedTournament(e.target.value as string)}
-              variant="outlined" // Material 3 default
+              variant="outlined"
             >
               <MenuItem value="">-- Select a Tournament --</MenuItem>
               {tournaments.map((t) => (
@@ -157,16 +157,16 @@ const GroupsPage = () => {
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                 />
-                <Button variant="contained" onClick={handleAddGroup} size="large"> {/* Added size for Material 3 feel */}
+                <Button variant="contained" onClick={handleAddGroup} size="large">
                   Add Group
                 </Button>
               </Box>
 
               {groups.length === 0 ? (
-                <Typography sx={{ mt: 2 }}>No groups for this tournament yet. Add one above.</Typography>
+                <Alert severity="info" sx={{ mt: 2 }}>No groups for this tournament yet. Add one above.</Alert>
               ) : (
                 groups.map((group) => (
-                  <Card key={group.id} elevation={3} sx={{ mb: 3 }}> {/* Added elevation for Material 3 feel */}
+                  <Card key={group.id} variant="outlined" sx={{ mb: 3 }}>
                     <CardContent>
                       <Typography variant="h6" component="h3" gutterBottom>
                         {group.name}
@@ -200,9 +200,9 @@ const GroupsPage = () => {
               )}
             </Box>
           )}
-        </Paper>
+        </Card>
       )}
-    </Box>
+    </Container>
   );
 };
 

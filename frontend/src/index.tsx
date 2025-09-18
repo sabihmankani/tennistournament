@@ -4,20 +4,58 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Experimental_CssVarsProvider as CssVarsProvider, experimental_extendTheme as extendTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2', // A shade of blue
+declare module '@mui/material/styles' {
+  interface Palette {
+    tertiary: Palette['primary'];
+  }
+  interface PaletteOptions {
+    tertiary?: PaletteOptions['primary'];
+  }
+}
+
+declare module '@mui/material/Button' {
+  interface ButtonPropsColorOverrides {
+    tertiary: true;
+  }
+}
+
+const theme = extendTheme({
+  colorSchemes: {
+    light: {
+      palette: {
+        primary: {
+          main: '#00658f',
+        },
+        secondary: {
+          main: '#4f616b',
+        },
+        tertiary: {
+          main: '#625b71',
+        },
+      },
     },
-    secondary: {
-      main: '#dc004e', // A shade of red
+    dark: {
+      palette: {
+        primary: {
+          main: '#6dd2ff',
+        },
+        secondary: {
+          main: '#b8c9d4',
+        },
+        tertiary: {
+          main: '#cdc1db',
+        },
+      },
     },
   },
   typography: {
     fontFamily: 'Roboto, sans-serif',
+  },
+  shape: {
+    borderRadius: 8,
   },
 });
 
@@ -27,10 +65,10 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <ThemeProvider theme={theme}>
+      <CssVarsProvider theme={theme}>
         <CssBaseline />
         <App />
-      </ThemeProvider>
+      </CssVarsProvider>
     </BrowserRouter>
   </React.StrictMode>
 );
