@@ -77,10 +77,16 @@ const GroupMembersPage: React.FC = () => {
           const tournament = tournaments.find(t => t.id === selectedTournament);
           if (tournament && tournament.isGroupBased) {
             const groupPromises = tournament.groupIds.map(groupId =>
-              api.get<Group>(`/groups/${groupId}`)
+              api.get<Group>(`/groups/${groupId}`).catch(err => {
+                console.error(`Failed to fetch group ${groupId}:`, err);
+                return null; // Return null for failed requests
+              })
             );
-            const groupResponses = await Promise.all(groupPromises);
-            setGroups(groupResponses.map(res => res.data));
+            const groupResponses = await Promise.allSettled(groupPromises);
+            const fetchedGroups = groupResponses
+              .filter(result => result.status === 'fulfilled' && result.value !== null)
+              .map(result => (result as PromiseFulfilledResult<Group>).value);
+            setGroups(fetchedGroups);
           } else {
             setGroups([]);
           }
