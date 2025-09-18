@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Container } from '@mui/material';
+import { Typography, Button, Container } from '@mui/material';
 
 const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();

@@ -14,7 +14,6 @@ import {
   Grid,
   CircularProgress,
   Alert,
-  Paper // Added Paper for consistent styling
 } from '@mui/material';
 
 interface Player {
