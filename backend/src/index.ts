@@ -211,6 +211,32 @@ app.get('/api/groups', async (req, res) => {
   }
 });
 
+app.get('/api/groups/:id', async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+    res.json(formatDoc(group));
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+app.delete('/api/groups/:id', async (req, res) => {
+  try {
+    const group = await Group.findByIdAndDelete(req.params.id);
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+    res.status(204).send();
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // Admin Login
 app.post('/api/admin/login', (req, res) => {
   console.log('Login attempt:', req.body);
