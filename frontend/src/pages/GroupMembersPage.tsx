@@ -84,8 +84,10 @@ const GroupMembersPage: React.FC = () => {
             );
             const groupResponses = await Promise.allSettled(groupPromises);
             const fetchedGroups = groupResponses
-              .filter(result => result.status === 'fulfilled' && result.value !== null)
-              .map(result => (result as PromiseFulfilledResult<Group>).value);
+              .filter((result): result is PromiseFulfilledResult<AxiosResponse<Group>> =>
+                result.status === 'fulfilled' && result.value !== null
+              )
+              .map(result => result.value.data);
             setGroups(fetchedGroups);
           } else {
             setGroups([]);
