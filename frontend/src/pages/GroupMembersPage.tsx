@@ -66,7 +66,7 @@ const GroupMembersPage: React.FC = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [selectedTournament]);
 
   useEffect(() => {
     if (selectedTournament) {

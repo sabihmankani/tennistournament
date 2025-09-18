@@ -106,9 +106,11 @@ const GroupsPage = () => {
     if (window.confirm('Are you sure you want to delete this group?')) {
       try {
         await api.delete(`/groups/${groupId}`);
-        // Refresh groups
-        const response = await api.get<Group[]>(`/tournaments/${selectedTournament}/groups`);
-        setGroups(response.data);
+        // Refresh groups and tournaments
+        const updatedGroupsResponse = await api.get<Group[]>(`/tournaments/${selectedTournament}/groups`);
+        setGroups(updatedGroupsResponse.data);
+        const updatedTournamentsResponse = await api.get<Tournament[]>('/tournaments');
+        setTournaments(updatedTournamentsResponse.data);
       } catch (err: any) {
         console.error('Error deleting group:', err);
         setError('Failed to delete group.');
