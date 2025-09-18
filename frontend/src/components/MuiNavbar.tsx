@@ -47,6 +47,7 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
     { name: 'Add Match', path: '/add-match', adminOnly: false },
     { name: 'Matches', path: '/matches', adminOnly: false },
     { name: 'Rankings', path: '/rankings', adminOnly: false },
+    { name: 'Group Members', path: '/group-members', adminOnly: false },
   ];
 
   const isActive = (path: string) => location.pathname === path;

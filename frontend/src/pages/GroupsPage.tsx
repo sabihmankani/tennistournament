@@ -11,13 +11,16 @@ import {
   MenuItem,
   Card,
   CardContent,
+  CardActions,
   FormControlLabel,
   Checkbox,
   CircularProgress,
   Alert,
   Grid,
-  Container
+  Container,
+  IconButton
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Player {
   id: string;
@@ -96,6 +99,20 @@ const GroupsPage = () => {
     } catch (err: any) {
       console.error('Error adding group:', err);
       setError('Failed to add group. Max 5 groups allowed.');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    if (window.confirm('Are you sure you want to delete this group?')) {
+      try {
+        await api.delete(`/groups/${groupId}`);
+        // Refresh groups
+        const response = await api.get<Group[]>(`/tournaments/${selectedTournament}/groups`);
+        setGroups(response.data);
+      } catch (err: any) {
+        console.error('Error deleting group:', err);
+        setError('Failed to delete group.');
+      }
     }
   };
 
@@ -195,6 +212,11 @@ const GroupsPage = () => {
                         ))}
                       </Grid>
                     </CardContent>
+                    <CardActions>
+                      <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteGroup(group.id)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </CardActions>
                   </Card>
                 ))
               )}

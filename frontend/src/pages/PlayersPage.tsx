@@ -41,6 +41,8 @@ const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
     } catch (err: any) {
       console.error("Error fetching players:", err);
       setError('Failed to fetch players.');
+    } finally {
+      setLoading(false);
     }
   };
 

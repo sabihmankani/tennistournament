@@ -12,6 +12,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import RankingsPage from './pages/RankingsPage';
 import MatchesPage from './pages/MatchesPage';
 import GroupsPage from './pages/GroupsPage';
+import GroupMembersPage from './pages/GroupMembersPage';
 import MuiNavbar from './components/MuiNavbar';
 import { Container } from '@mui/material'; // Import Container
 
@@ -38,6 +39,7 @@ function App() {
           <Route path="/add-match" element={<AddMatchPage />} />
           <Route path="/matches" element={<MatchesPage isAdminLoggedIn={isAdminLoggedIn} />} />
           <Route path="/rankings" element={<RankingsPage />} />
+          <Route path="/group-members" element={<GroupMembersPage />} />
           <Route path="/admin" element={<AdminLoginPage onLoginSuccess={() => handleLoginStatusChange(true)} />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
         </Routes>
