@@ -11,7 +11,7 @@ const port = 3001;
 // Connect to Database
 connectDB();
 
-app.use(cors());
+app.use(cors({ origin: 'https://tennistournament-d1rb.vercel.app' }));
 app.use(express.json());
 
 // Helper to convert Mongoose documents to plain objects with 'id' instead of '_id'
