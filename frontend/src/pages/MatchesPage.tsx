@@ -14,17 +14,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-interface Match {
-  id: string;
-  tournamentId: string;
-  player1Id: string;
-  player2Id: string;
-  score1: number;
-  score2: number;
-  location: string;
-  date: string;
-}
-
+// Updated interfaces to reflect populated data from the backend
 interface Player {
   id: string;
   firstName: string;
@@ -36,14 +26,23 @@ interface Tournament {
   name: string;
 }
 
+interface Match {
+  id: string;
+  tournamentId: Tournament;
+  player1Id: Player;
+  player2Id: Player;
+  score1: number;
+  score2: number;
+  location: string;
+  date: string;
+}
+
 interface MatchesPageProps {
   isAdminLoggedIn: boolean;
 }
 
 const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,15 +50,9 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
     setLoading(true);
     setError(null);
     try {
+      // Only one API call is needed now
       const matchesResponse = await api.get<Match[]>('/matches');
       setMatches(matchesResponse.data);
-
-      const playersResponse = await api.get<Player[]>('/players');
-      setPlayers(playersResponse.data);
-
-      const tournamentsResponse = await api.get<Tournament[]>('/tournaments');
-      setTournaments(tournamentsResponse.data);
-
     } catch (err: any) {
       console.error("Error fetching matches data:", err);
       setError('Failed to fetch matches data.');
@@ -71,16 +64,6 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   useEffect(() => {
     fetchMatchesData();
   }, []);
-
-  const getPlayerName = (id: string) => {
-    const player = players.find(p => p.id === id);
-    return player ? `${player.firstName} ${player.lastName}` : 'Unknown Player';
-  };
-
-  const getTournamentName = (id: string) => {
-    const tournament = tournaments.find(t => t.id === id);
-    return tournament ? tournament.name : 'Unknown Tournament';
-  };
 
   const handleDeleteMatch = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this match?')) {
@@ -113,9 +96,10 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
             <Grid item xs={12} md={6} key={match.id}>
               <Card elevation={2}>
                 <CardContent>
-                  <Typography variant="h6">{getTournamentName(match.tournamentId)}</Typography>
+                  {/* Use populated data directly */}
+                  <Typography variant="h6">{match.tournamentId?.name || 'Unknown Tournament'}</Typography>
                   <Typography variant="body1" color="text.primary">
-                    {getPlayerName(match.player1Id)} {match.score1} - {match.score2} {getPlayerName(match.player2Id)}
+                    {`${match.player1Id?.firstName || 'Unknown'} ${match.player1Id?.lastName || 'Player'}`} {match.score1} - {match.score2} {`${match.player2Id?.firstName || 'Unknown'} ${match.player2Id?.lastName || 'Player'}`}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Location: {match.location}
