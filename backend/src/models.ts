@@ -53,6 +53,7 @@ export interface IMatch extends Document {
   location: string;
   date: Date; // Stored as a Date object
   groupId?: Types.ObjectId;     // References Group document (optional)
+  ipAddress?: string;
 }
 const MatchSchema = new Schema<IMatch>({
   tournamentId: { type: Schema.Types.ObjectId, ref: 'Tournament', required: true },
@@ -63,5 +64,25 @@ const MatchSchema = new Schema<IMatch>({
   location: { type: String, required: true },
   date: { type: Date, default: Date.now },
   groupId: { type: Schema.Types.ObjectId, ref: 'Group', required: false },
+  ipAddress: { type: String },
 });
 export const Match = model<IMatch>('Match', MatchSchema);
+
+// Rate Limit Model
+export interface IRateLimit extends Document {
+  identifier: string; // IP address
+  lastMatchTimestamp: Date;
+  dailyMatchCount: number;
+  dailyCountTimestamp: Date;
+  blockedUntil?: Date;
+}
+
+const RateLimitSchema = new Schema<IRateLimit>({
+  identifier: { type: String, required: true, unique: true },
+  lastMatchTimestamp: { type: Date, required: true },
+  dailyMatchCount: { type: Number, default: 0 },
+  dailyCountTimestamp: { type: Date, required: true },
+  blockedUntil: { type: Date },
+});
+
+export const RateLimit = model<IRateLimit>('RateLimit', RateLimitSchema);

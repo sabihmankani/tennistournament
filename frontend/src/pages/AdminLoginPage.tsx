@@ -30,7 +30,8 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
     try {
       const response = await api.post('/admin/login', { username, password });
 
-      if (response.status === 200) {
+      if (response.status === 200 && response.data.token) {
+        localStorage.setItem('adminToken', response.data.token);
         onLoginSuccess();
         navigate('/admin/dashboard');
       } else {
