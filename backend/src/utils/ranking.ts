@@ -6,19 +6,19 @@ interface PlayerRanking {
   wins: number;
   losses: number;
   winLossRatio: number;
-  setsWon: number;
-  setsLost: number;
-  setsRatio: number;
+  gamesWon: number;
+  gamesLost: number;
+  gamesRatio: number;
 }
 
 export const calculateOverallRanking = async (): Promise<PlayerRanking[]> => {
   const players = await Player.find();
   const matches = await Match.find();
 
-  const playerStats: { [key: string]: { wins: number; losses: number; setsWon: number; setsLost: number } } = {};
+  const playerStats: { [key: string]: { wins: number; losses: number; gamesWon: number; gamesLost: number } } = {};
 
   players.forEach(player => {
-    playerStats[player._id.toString()] = { wins: 0, losses: 0, setsWon: 0, setsLost: 0 };
+    playerStats[player._id.toString()] = { wins: 0, losses: 0, gamesWon: 0, gamesLost: 0 };
   });
 
   matches.forEach(match => {
@@ -39,37 +39,37 @@ export const calculateOverallRanking = async (): Promise<PlayerRanking[]> => {
       playerStats[player1Id].losses++;
     }
 
-    // Update sets won/lost
-    playerStats[player1Id].setsWon += match.score1;
-    playerStats[player1Id].setsLost += match.score2;
-    playerStats[player2Id].setsWon += match.score2;
-    playerStats[player2Id].setsLost += match.score1;
+    // Update games won/lost
+    playerStats[player1Id].gamesWon += match.score1;
+    playerStats[player1Id].gamesLost += match.score2;
+    playerStats[player2Id].gamesWon += match.score2;
+    playerStats[player2Id].gamesLost += match.score1;
   });
 
   const rankings: PlayerRanking[] = players.map(player => {
     const stats = playerStats[player._id.toString()];
     const totalMatches = stats.wins + stats.losses;
     const winLossRatio = totalMatches > 0 ? stats.wins / totalMatches : 0;
-    const totalSets = stats.setsWon + stats.setsLost;
-    const setsRatio = totalSets > 0 ? stats.setsWon / totalSets : 0;
+    const totalGames = stats.gamesWon + stats.gamesLost;
+    const gamesRatio = totalGames > 0 ? stats.gamesWon / totalGames : 0;
 
     return {
       player,
       wins: stats.wins,
       losses: stats.losses,
       winLossRatio,
-      setsWon: stats.setsWon,
-      setsLost: stats.setsLost,
-      setsRatio,
+      gamesWon: stats.gamesWon,
+      gamesLost: stats.gamesLost,
+      gamesRatio,
     };
   });
 
-  // Sort by wins (descending), then by setsRatio (descending)
+  // Sort by wins (descending), then by gamesRatio (descending)
   return rankings.sort((a, b) => {
     if (b.wins !== a.wins) {
       return b.wins - a.wins;
     }
-    return b.setsRatio - a.setsRatio;
+    return b.gamesRatio - a.gamesRatio;
   });
 };
 
@@ -81,7 +81,7 @@ export const calculateTournamentRanking = async (tournamentId: string, groupId?:
   }
   const tournamentMatches = await Match.find(query);
 
-  const playerStats: { [key: string]: { wins: number; losses: number; setsWon: number; setsLost: number } } = {};
+  const playerStats: { [key: string]: { wins: number; losses: number; gamesWon: number; gamesLost: number } } = {};
 
   // Initialize stats for players who played in this tournament
   const playersInTournament = new Set<string>();
@@ -91,7 +91,7 @@ export const calculateTournamentRanking = async (tournamentId: string, groupId?:
   });
 
   playersInTournament.forEach(playerId => {
-    playerStats[playerId] = { wins: 0, losses: 0, setsWon: 0, setsLost: 0 };
+    playerStats[playerId] = { wins: 0, losses: 0, gamesWon: 0, gamesLost: 0 };
   });
 
   tournamentMatches.forEach(match => {
@@ -112,11 +112,11 @@ export const calculateTournamentRanking = async (tournamentId: string, groupId?:
       playerStats[player1Id].losses++;
     }
 
-    // Update sets won/lost
-    playerStats[player1Id].setsWon += match.score1;
-    playerStats[player1Id].setsLost += match.score2;
-    playerStats[player2Id].setsWon += match.score2;
-    playerStats[player2Id].setsLost += match.score1;
+    // Update games won/lost
+    playerStats[player1Id].gamesWon += match.score1;
+    playerStats[player1Id].gamesLost += match.score2;
+    playerStats[player2Id].gamesWon += match.score2;
+    playerStats[player2Id].gamesLost += match.score1;
   });
 
   const rankings: PlayerRanking[] = Array.from(playersInTournament).map(playerId => {
@@ -127,25 +127,25 @@ export const calculateTournamentRanking = async (tournamentId: string, groupId?:
     const stats = playerStats[playerId];
     const totalMatches = stats.wins + stats.losses;
     const winLossRatio = totalMatches > 0 ? stats.wins / totalMatches : 0;
-    const totalSets = stats.setsWon + stats.setsLost;
-    const setsRatio = totalSets > 0 ? stats.setsWon / totalSets : 0;
+    const totalGames = stats.gamesWon + stats.gamesLost;
+    const gamesRatio = totalGames > 0 ? stats.gamesWon / totalGames : 0;
 
     return {
       player,
       wins: stats.wins,
       losses: stats.losses,
       winLossRatio,
-      setsWon: stats.setsWon,
-      setsLost: stats.setsLost,
-      setsRatio,
+      gamesWon: stats.gamesWon,
+      gamesLost: stats.gamesLost,
+      gamesRatio,
     };
   });
 
-  // Sort by wins (descending), then by setsRatio (descending)
+  // Sort by wins (descending), then by gamesRatio (descending)
   return rankings.sort((a, b) => {
     if (b.wins !== a.wins) {
       return b.wins - a.wins;
     }
-    return b.setsRatio - a.setsRatio;
+    return b.gamesRatio - a.gamesRatio;
   });
 };

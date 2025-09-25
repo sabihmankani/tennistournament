@@ -30,9 +30,9 @@ interface PlayerRanking {
   wins: number;
   losses: number;
   winLossRatio: number;
-  setsWon: number;
-  setsLost: number;
-  setsRatio: number;
+  gamesWon: number;
+  gamesLost: number;
+  gamesRatio: number;
 }
 
 interface Tournament {
@@ -137,9 +137,9 @@ const RankingsPage: React.FC = () => {
           <TableCell>Wins</TableCell>
           <TableCell>Losses</TableCell>
           <TableCell>W/L Ratio</TableCell>
-          <TableCell>Sets Won</TableCell>
-          <TableCell>Sets Lost</TableCell>
-          <TableCell>Sets Ratio</TableCell>
+          <TableCell>Games Won</TableCell>
+          <TableCell>Games Lost</TableCell>
+          <TableCell>Games Ratio</TableCell>
         </TableRow>
       </TableHead>
       <TableBody>
@@ -150,9 +150,9 @@ const RankingsPage: React.FC = () => {
             <TableCell>{ranking.wins}</TableCell>
             <TableCell>{ranking.losses}</TableCell>
             <TableCell>{ranking.winLossRatio.toFixed(2)}</TableCell>
-            <TableCell>{ranking.setsWon}</TableCell>
-            <TableCell>{ranking.setsLost}</TableCell>
-            <TableCell>{ranking.setsRatio.toFixed(2)}</TableCell>
+            <TableCell>{ranking.gamesWon}</TableCell>
+            <TableCell>{ranking.gamesLost}</TableCell>
+            <TableCell>{ranking.gamesRatio.toFixed(2)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
