@@ -14,10 +14,11 @@ import {
   Paper,
   CircularProgress,
   Alert,
-  Box
+  Box,
+  Chip,
 } from '@mui/material';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
-// Define the interfaces for the data
 interface Player {
   firstName: string;
   lastName: string;
@@ -33,107 +34,101 @@ interface MatchLog {
   ipAddress: string;
 }
 
-// --- MatchLogTable Component ---
-const MatchLogTable: React.FC = () => {
+const AdminDashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const [matchLogs, setMatchLogs] = useState<MatchLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMatchLogs = async () => {
-      try {
-        const response = await api.get<MatchLog[]>('/admin/match-logs');
-        setMatchLogs(response.data);
-      } catch (err) {
-        setError('Failed to fetch match logs. You may not have the required permissions.');
-        console.error('Error fetching match logs:', err);
-      }
-      setLoading(false);
-    };
-
-    fetchMatchLogs();
-  }, []);
-
-  if (loading) {
-    return <CircularProgress />;
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
-
-  return (
-    <TableContainer component={Paper} sx={{ mt: 4 }}>
-      <Typography variant="h6" component="h3" sx={{ p: 2 }}>
-        Match Submission Logs
-      </Typography>
-      <Table aria-label="match logs table">
-        <TableHead>
-          <TableRow>
-            <TableCell>Player 1</TableCell>
-            <TableCell>Player 2</TableCell>
-            <TableCell align="center">Score</TableCell>
-            <TableCell>Date</TableCell>
-            <TableCell>IP Address</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {matchLogs.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} align="center">No match logs found.</TableCell>
-            </TableRow>
-          ) : (
-            matchLogs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell>{`${log.player1Id?.firstName || 'N/A'} ${log.player1Id?.lastName || ''}`.trim()}</TableCell>
-                <TableCell>{`${log.player2Id?.firstName || 'N/A'} ${log.player2Id?.lastName || ''}`.trim()}</TableCell>
-                <TableCell align="center">{`${log.score1} - ${log.score2}`}</TableCell>
-                <TableCell>{new Date(log.date).toLocaleString()}</TableCell>
-                <TableCell>{log.ipAddress}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-};
-
-
-// --- AdminDashboardPage Component ---
-const AdminDashboardPage: React.FC = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check if admin token exists
     const token = localStorage.getItem('adminToken');
     if (!token) {
-      navigate('/admin'); // Redirect to login if no token
+      navigate('/admin');
+      return;
     }
+    api.get<MatchLog[]>('/admin/match-logs')
+      .then(res => setMatchLogs(res.data))
+      .catch(() => setError('Failed to fetch match logs.'))
+      .finally(() => setLoading(false));
   }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
-    navigate('/admin');
+    navigate('/');
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" component="h2" gutterBottom>
-          Admin Dashboard
-        </Typography>
-        <Button variant="contained" color="error" onClick={handleLogout}>
-          Logout
-        </Button>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AdminPanelSettingsIcon color="success" />
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>Admin Dashboard</Typography>
+            <Typography variant="body2" color="text.secondary">Soul Brothers Pakistan Tennis Championship</Typography>
+          </Box>
+        </Box>
+        <Button variant="outlined" color="error" onClick={handleLogout}>Logout</Button>
       </Box>
-      <Typography variant="body1" gutterBottom sx={{ mb: 3 }}>
-        Welcome, Admin!
-      </Typography>
-      
-      {/* Match Log Table */}
-      <MatchLogTable />
 
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Match Submission Log</Typography>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : (
+        <TableContainer component={Paper} elevation={2}>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.100' }}>
+                <TableCell sx={{ fontWeight: 700 }}>#</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Player 1</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Score</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Player 2</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Winner</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>IP</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {matchLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    No matches submitted yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                matchLogs.map((log, i) => {
+                  const p1 = `${log.player1Id?.firstName || '?'} ${log.player1Id?.lastName || ''}`.trim();
+                  const p2 = `${log.player2Id?.firstName || '?'} ${log.player2Id?.lastName || ''}`.trim();
+                  const winnerName = log.score1 > log.score2 ? p1 : p2;
+                  return (
+                    <TableRow key={log.id} hover>
+                      <TableCell>{matchLogs.length - i}</TableCell>
+                      <TableCell>{p1}</TableCell>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                          {log.score1} – {log.score2}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{p2}</TableCell>
+                      <TableCell>
+                        <Chip label={winnerName} size="small" color="success" />
+                      </TableCell>
+                      <TableCell>{new Date(log.date).toLocaleString('en-PK')}</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'text.secondary' }}>
+                        {log.ipAddress}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Container>
   );
 };

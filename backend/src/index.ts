@@ -3,413 +3,278 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import connectDB from './db';
-import { Player, Tournament, Group, Match, RateLimit } from './models';
-import { calculateOverallRanking, calculateTournamentRanking } from './utils/ranking';
+import { Player, Match, RateLimit } from './models';
+import { calculateOverallRanking } from './utils/ranking';
 
-// Extend Express Request type to include isAdmin
 interface AuthRequest extends Request {
   isAdmin?: boolean;
 }
 
 const app = express();
-app.set('trust proxy', 1); // Necessary for getting the correct IP address behind a proxy
 const port = 3001;
-
-// It's crucial to move this to an environment variable in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key';
 
-// Connect to Database
-connectDB();
+const allowedOrigins = [
+  'https://tennistournament-d1rb.vercel.app',
+  'http://localhost:3000',
+];
 
-app.use(cors({ origin: 'https://tennistournament-d1rb.vercel.app' }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 app.use(express.json());
 
-// Helper to convert Mongoose documents to plain objects with 'id' instead of '_id'
 const formatDoc = (doc: any) => {
   if (!doc) return null;
-  const obj = doc.toObject({ getters: true, virtuals: false });
-  obj.id = obj._id.toString();
+  const obj = doc.toObject ? doc.toObject({ getters: true, virtuals: false }) : { ...doc };
+  obj.id = (obj._id || obj.id).toString();
   delete obj._id;
   delete obj.__v;
   return obj;
 };
 
-// --- AUTH MIDDLEWARE ---
-const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+// Auth middleware
+app.use((req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
+  if (authHeader?.startsWith('Bearer ')) {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { isAdmin: boolean };
-      if (decoded.isAdmin) {
-        req.isAdmin = true;
-      }
-    } catch (err) {
-      // Invalid token, but we don't block the request, just don't grant admin privileges
-      console.log('Invalid JWT received');
+      const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET) as { isAdmin: boolean };
+      if (decoded.isAdmin) req.isAdmin = true;
+    } catch {
+      // Invalid token — not an error, just not admin
     }
   }
   next();
-};
+});
 
-// Apply auth middleware to all routes
-app.use(authMiddleware);
-
-
-// --- API Routes ---
-
-// Players
-app.get('/api/players', async (req, res) => {
+// Connect DB before handling requests
+app.use(async (_req, _res, next) => {
   try {
-    const players = await Player.find();
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Players ---
+
+app.get('/api/players', async (_req, res) => {
+  try {
+    const players = await Player.find().sort({ firstName: 1 });
     res.json(players.map(formatDoc));
-  } catch (err: any) {
-    console.error(err.message);
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
 app.post('/api/players', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
-    const newPlayer = new Player(req.body);
-    await newPlayer.save();
-    res.status(201).json(formatDoc(newPlayer));
-  } catch (err: any) {
-    console.error(err.message);
+    const { firstName, lastName } = req.body;
+    if (!firstName || !lastName) return res.status(400).json({ message: 'First and last name required' });
+    const player = new Player({ firstName, lastName });
+    await player.save();
+    res.status(201).json(formatDoc(player));
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
 app.delete('/api/players/:id', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
     const player = await Player.findByIdAndDelete(req.params.id);
-    if (!player) {
-      return res.status(404).json({ message: 'Player not found' });
-    }
+    if (!player) return res.status(404).json({ message: 'Player not found' });
     res.status(204).send();
-  } catch (err: any) {
-    console.error(err.message);
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
-// Tournaments
-app.get('/api/tournaments', async (req, res) => {
+// --- Matches ---
+
+app.get('/api/matches', async (_req, res) => {
   try {
-    const tournaments = await Tournament.find();
-    res.json(tournaments.map(formatDoc));
-  } catch (err: any) {
-    console.error(err.message);
+    const matches = await Match.find()
+      .populate('player1Id player2Id')
+      .sort({ date: -1 });
+    res.json(matches.map(formatDoc));
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
-app.post('/api/tournaments', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-  try {
-    const { name, isGroupBased } = req.body;
-    const newTournament = new Tournament({ name, isGroupBased, groupIds: [] });
-    await newTournament.save();
-    res.status(201).json(formatDoc(newTournament));
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-app.delete('/api/tournaments/:id', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-  try {
-    const tournament = await Tournament.findByIdAndDelete(req.params.id);
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-    res.status(204).send();
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-app.get('/api/tournaments/:id/groups', async (req, res) => {
-  try {
-    const tournament = await Tournament.findById(req.params.id).populate('groupIds');
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-    res.json((tournament.groupIds as any).map(formatDoc));
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-app.post('/api/tournaments/:id/groups', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-  try {
-    const tournament = await Tournament.findById(req.params.id);
-    if (!tournament) {
-      return res.status(404).json({ message: 'Tournament not found' });
-    }
-
-    if (tournament.groupIds.length >= 5) {
-      return res.status(400).json({ message: 'Maximum of 5 groups allowed per tournament' });
-    }
-
-    const { name } = req.body;
-    const newGroup = new Group({ name, playerIds: [] });
-    await newGroup.save();
-
-    tournament.groupIds.push(newGroup._id);
-    await tournament.save();
-
-    res.status(201).json(formatDoc(newGroup));
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-app.put('/api/groups/:id/players', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-  try {
-    const group = await Group.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-
-    const { playerIds } = req.body;
-    group.playerIds = playerIds;
-    await group.save();
-
-    res.json(formatDoc(group));
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Matches
 app.post('/api/matches', async (req: AuthRequest, res) => {
-  const ip = req.ip;
+  const ip = req.ip || 'unknown';
 
   if (!req.isAdmin) {
     try {
-      let rateLimit = await RateLimit.findOne({ identifier: ip });
+      const rateLimit = await RateLimit.findOne({ identifier: ip });
       const now = new Date();
 
-      if (rateLimit && rateLimit.blockedUntil && rateLimit.blockedUntil > now) {
-        const remainingTime = Math.ceil((rateLimit.blockedUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return res.status(429).json({
-          message: `You have been blocked from submitting matches for ${remainingTime} more days due to excessive submissions.`,
-        });
+      if (rateLimit?.blockedUntil && rateLimit.blockedUntil > now) {
+        const days = Math.ceil((rateLimit.blockedUntil.getTime() - now.getTime()) / 86400000);
+        return res.status(429).json({ message: `Blocked for ${days} more day(s) due to excessive submissions.` });
       }
 
-      if (rateLimit && (now.getTime() - rateLimit.lastMatchTimestamp.getTime()) < 5 * 60 * 1000) {
-        return res.status(429).json({ message: 'You can only add one match every 5 minutes.' });
+      if (rateLimit && (now.getTime() - rateLimit.lastMatchTimestamp.getTime()) < 60000) {
+        return res.status(429).json({ message: 'Please wait 1 minute between submissions.' });
       }
 
-      if (rateLimit && rateLimit.dailyCountTimestamp < new Date(now.getTime() - 24 * 60 * 60 * 1000)) {
-        rateLimit.dailyMatchCount = 0;
-        rateLimit.dailyCountTimestamp = now;
-      }
-      
-      if (rateLimit) {
-        rateLimit.dailyMatchCount += 1;
-        if (rateLimit.dailyMatchCount > 10) {
-            rateLimit.blockedUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-            await rateLimit.save();
-            return res.status(429).json({ message: 'You have exceeded the maximum of 10 matches per 24 hours and are now blocked for 30 days.' });
-        }
-      }
+      const isNewDay = !rateLimit || rateLimit.dailyCountTimestamp < new Date(now.getTime() - 86400000);
+      const currentDailyCount = isNewDay ? 0 : (rateLimit?.dailyMatchCount || 0);
 
-    } catch (err: any) {
-        console.error('Rate limiting error:', err.message);
-        return res.status(500).send('Server Error during rate limit check');
+      if (currentDailyCount >= 20) {
+        await RateLimit.findOneAndUpdate(
+          { identifier: ip },
+          { blockedUntil: new Date(now.getTime() + 30 * 86400000) },
+          { upsert: true }
+        );
+        return res.status(429).json({ message: 'Daily limit of 20 matches exceeded. Blocked for 30 days.' });
+      }
+    } catch {
+      return res.status(500).send('Server Error');
     }
   }
 
   try {
-    const { tournamentId, player1Id, player2Id, score1, score2, location, groupId } = req.body;
+    const { player1Id, player2Id, score1, score2 } = req.body;
 
-    const newMatch = new Match({
-      tournamentId: new mongoose.Types.ObjectId(tournamentId as string),
-      player1Id: new mongoose.Types.ObjectId(player1Id as string),
-      player2Id: new mongoose.Types.ObjectId(player2Id as string),
-      score1,
-      score2,
-      location,
+    if (!player1Id || !player2Id) return res.status(400).json({ message: 'Both players are required' });
+    if (player1Id === player2Id) return res.status(400).json({ message: 'Players must be different' });
+
+    const s1 = Number(score1);
+    const s2 = Number(score2);
+
+    const validScore = (
+      (s1 === 6 && s2 >= 0 && s2 <= 5) ||
+      (s2 === 6 && s1 >= 0 && s1 <= 5)
+    );
+    if (!validScore) {
+      return res.status(400).json({ message: 'Invalid score: winner must have 6 games, loser 0–5.' });
+    }
+
+    const match = new Match({
+      player1Id: new mongoose.Types.ObjectId(player1Id),
+      player2Id: new mongoose.Types.ObjectId(player2Id),
+      score1: s1,
+      score2: s2,
       date: new Date(),
-      groupId: groupId ? new mongoose.Types.ObjectId(groupId as string) : undefined,
       ipAddress: ip,
     });
-    await newMatch.save();
-    
-    // Update rate limit info after successful save
+    await match.save();
+
+    const now = new Date();
     await RateLimit.findOneAndUpdate(
-        { identifier: ip },
-        { 
-            $inc: { dailyMatchCount: 1 },
-            $set: { lastMatchTimestamp: new Date(), dailyCountTimestamp: new Date() }
-        },
-        { upsert: true, new: true }
+      { identifier: ip },
+      {
+        $set: { lastMatchTimestamp: now, dailyCountTimestamp: now },
+        $inc: { dailyMatchCount: 1 },
+      },
+      { upsert: true }
     );
 
-    res.status(201).json(formatDoc(newMatch));
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-app.get('/api/matches', async (req, res) => {
-  try {
-    const matches = await Match.find().populate('player1Id player2Id tournamentId');
-    res.json(matches.map(formatDoc));
-  } catch (err: any) {
-    console.error(err.message);
+    const populated = await match.populate('player1Id player2Id');
+    res.status(201).json(formatDoc(populated));
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
 app.delete('/api/matches/:id', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
     const match = await Match.findByIdAndDelete(req.params.id);
-    if (!match) {
-      return res.status(404).json({ message: 'Match not found' });
-    }
+    if (!match) return res.status(404).json({ message: 'Match not found' });
     res.status(204).send();
-  } catch (err: any) {
-    console.error(err.message);
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
-// Groups
-app.get('/api/groups', async (req, res) => {
+// --- Rankings ---
+
+app.get('/api/rankings/overall', async (_req, res) => {
   try {
-    const groups = await Group.find();
-    res.json(groups.map(formatDoc));
-  } catch (err: any) {
-    console.error(err.message);
+    const rankings = await calculateOverallRanking();
+    res.json(rankings);
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
-app.get('/api/groups/:id', async (req, res) => {
+// Head-to-head data for the matrix
+app.get('/api/rankings/head-to-head', async (_req, res) => {
   try {
-    const group = await Group.findById(req.params.id);
-    if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-    res.json(formatDoc(group));
-  } catch (err: any) {
-    console.error(err.message);
+    const players = await Player.find().sort({ firstName: 1 });
+    const matches = await Match.find();
+
+    // h2h[p1id][p2id] = { wins, losses } for p1 against p2
+    const h2h: Record<string, Record<string, { score1: number; score2: number } | null>> = {};
+
+    players.forEach(p => {
+      h2h[p._id.toString()] = {};
+      players.forEach(opp => {
+        if (opp._id.toString() !== p._id.toString()) {
+          h2h[p._id.toString()][opp._id.toString()] = null;
+        }
+      });
+    });
+
+    matches.forEach(match => {
+      const p1 = match.player1Id.toString();
+      const p2 = match.player2Id.toString();
+      if (h2h[p1] !== undefined) {
+        h2h[p1][p2] = { score1: match.score1, score2: match.score2 };
+      }
+      if (h2h[p2] !== undefined) {
+        h2h[p2][p1] = { score1: match.score2, score2: match.score1 };
+      }
+    });
+
+    res.json({ players: players.map(formatDoc), h2h });
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
-app.delete('/api/groups/:id', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-  try {
-    const group = await Group.findByIdAndDelete(req.params.id);
-    if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
-    }
-    res.status(204).send();
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// --- ADMIN ROUTES ---
+// --- Admin ---
 
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
-  // In a real app, use bcrypt to compare hashed passwords
   if (username === 'admin' && password === 'UsmanisKing') {
-    const token = jwt.sign({ isAdmin: true }, JWT_SECRET, { expiresIn: '1d' });
-    res.status(200).json({ message: 'Login successful', token });
+    const token = jwt.sign({ isAdmin: true }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ message: 'Login successful', token });
   } else {
     res.status(401).json({ message: 'Invalid credentials' });
   }
 });
 
 app.get('/api/admin/match-logs', async (req: AuthRequest, res) => {
-    if (!req.isAdmin) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-    try {
-        const matches = await Match.find().sort({ date: -1 }).populate('player1Id player2Id');
-        res.json(matches.map(formatDoc));
-    } catch (err: any) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
-
-// Rankings (These functions in utils/ranking.ts will need to be updated to use MongoDB)
-app.get('/api/rankings/overall', async (req, res) => {
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
-    // This function needs to be updated to fetch data from MongoDB
-    const rankings = await calculateOverallRanking();
-    res.json(rankings);
-  } catch (err: any) {
-    console.error(err.message);
+    const matches = await Match.find().sort({ date: -1 }).populate('player1Id player2Id');
+    res.json(matches.map(formatDoc));
+  } catch {
     res.status(500).send('Server Error');
   }
 });
 
-app.get('/api/rankings/tournament/:tournamentId', async (req, res) => {
-  try {
-    const { tournamentId } = req.params;
-    // This function needs to be updated to fetch data from MongoDB
-    const rankings = await calculateTournamentRanking(tournamentId);
-    res.json(rankings);
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
+app.get('/', (_req, res) => {
+  res.send('Soul Brothers Pakistan Tennis Backend is running.');
 });
 
-app.get('/api/rankings/tournament/:tournamentId/group/:groupId', async (req, res) => {
-  try {
-    const { tournamentId, groupId } = req.params;
-    // This function needs to be updated to fetch data from MongoDB
-    const rankings = await calculateTournamentRanking(tournamentId, groupId);
-    res.json(rankings);
-  } catch (err: any) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
+// Export for Vercel serverless
+export default app;
 
-
-app.get('/', (req, res) => {
-  res.send('Hello from the Tennis Championship Backend!');
-});
-
-app.listen(port, () => {
-  console.log(`Backend server listening at http://localhost:${port}`);
-});
+// Listen locally
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => console.log(`Backend running at http://localhost:${port}`));
+}

@@ -10,30 +10,24 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActions
+  CardActions,
+  Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
-// Updated interfaces to reflect populated data from the backend
 interface Player {
   id: string;
   firstName: string;
   lastName: string;
 }
 
-interface Tournament {
-  id: string;
-  name: string;
-}
-
 interface Match {
   id: string;
-  tournamentId: Tournament;
   player1Id: Player;
   player2Id: Player;
   score1: number;
   score2: number;
-  location: string;
   date: string;
 }
 
@@ -43,81 +37,131 @@ interface MatchesPageProps {
 
 const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMatchesData = async () => {
+  const fetchMatches = async () => {
     setLoading(true);
     setError(null);
     try {
-      // Only one API call is needed now
-      const matchesResponse = await api.get<Match[]>('/matches');
-      setMatches(matchesResponse.data);
-    } catch (err: any) {
-      console.error("Error fetching matches data:", err);
-      setError('Failed to fetch matches data.');
+      const res = await api.get<Match[]>('/matches');
+      setMatches(res.data);
+    } catch {
+      setError('Failed to fetch match results.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchMatchesData();
-  }, []);
+  useEffect(() => { fetchMatches(); }, []);
 
-  const handleDeleteMatch = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this match?')) {
-      try {
-        await api.delete(`/matches/${id}`);
-        fetchMatchesData(); // Refresh the list after deletion
-      } catch (err: any) {
-        console.error("Error deleting match:", err);
-        setError('Failed to delete match.');
-      }
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this match result?')) return;
+    try {
+      await api.delete(`/matches/${id}`);
+      fetchMatches();
+    } catch {
+      setError('Failed to delete match.');
     }
   };
 
+  const winner = (match: Match): 'p1' | 'p2' =>
+    match.score1 > match.score2 ? 'p1' : 'p2';
+
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h2" gutterBottom>
-        All Matches
+    <Container sx={{ mt: 4, mb: 6 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <EmojiEventsIcon color="warning" />
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          Match Results
+        </Typography>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+        All recorded matches — {matches.length} match{matches.length !== 1 ? 'es' : ''} played
       </Typography>
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+        <Alert severity="error">{error}</Alert>
       ) : matches.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>No matches recorded yet.</Alert>
+        <Alert severity="info">No matches recorded yet. Be the first to submit a score!</Alert>
       ) : (
-        <Grid container spacing={3}>
-          {matches.map((match) => (
-            <Grid item xs={12} md={6} key={match.id}>
-              <Card elevation={2}>
-                <CardContent>
-                  {/* Use populated data directly */}
-                  <Typography variant="h6">{match.tournamentId?.name || 'Unknown Tournament'}</Typography>
-                  <Typography variant="body1" color="text.primary">
-                    {`${match.player1Id?.firstName || 'Unknown'} ${match.player1Id?.lastName || 'Player'}`} {match.score1} - {match.score2} {`${match.player2Id?.firstName || 'Unknown'} ${match.player2Id?.lastName || 'Player'}`}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Location: {match.location}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Date: {new Date(match.date).toLocaleDateString()}
-                  </Typography>
-                </CardContent>
-                {isAdminLoggedIn && (
-                  <CardActions>
-                    <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteMatch(match.id)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </CardActions>
-                )}
-              </Card>
-            </Grid>
-          ))}
+        <Grid container spacing={2}>
+          {matches.map(match => {
+            const w = winner(match);
+            const p1 = match.player1Id;
+            const p2 = match.player2Id;
+            const p1Name = `${p1?.firstName || '?'} ${p1?.lastName || ''}`.trim();
+            const p2Name = `${p2?.firstName || '?'} ${p2?.lastName || ''}`.trim();
+            const date = new Date(match.date).toLocaleDateString('en-PK', {
+              day: 'numeric', month: 'short', year: 'numeric',
+            });
+
+            return (
+              <Grid item xs={12} sm={6} md={4} key={match.id}>
+                <Card
+                  elevation={2}
+                  sx={{ height: '100%', borderTop: '3px solid', borderColor: 'success.main' }}
+                >
+                  <CardContent>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                      {date}
+                    </Typography>
+
+                    {/* Score row */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                      {/* Player 1 */}
+                      <Box sx={{ flex: 1, textAlign: 'center' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: w === 'p1' ? 700 : 400, color: w === 'p1' ? 'success.main' : 'text.primary' }}
+                        >
+                          {w === 'p1' && '🏆 '}{p1Name}
+                        </Typography>
+                      </Box>
+
+                      {/* Score */}
+                      <Box sx={{ textAlign: 'center', minWidth: 70 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 2 }}>
+                          {match.score1} – {match.score2}
+                        </Typography>
+                      </Box>
+
+                      {/* Player 2 */}
+                      <Box sx={{ flex: 1, textAlign: 'center' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: w === 'p2' ? 700 : 400, color: w === 'p2' ? 'success.main' : 'text.primary' }}
+                        >
+                          {w === 'p2' && '🏆 '}{p2Name}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1.5 }}>
+                      <Chip
+                        label={`Winner: ${w === 'p1' ? p1Name : p2Name}`}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    </Box>
+                  </CardContent>
+
+                  {isAdminLoggedIn && (
+                    <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
+                      <IconButton size="small" aria-label="delete" onClick={() => handleDelete(match.id)} color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </CardActions>
+                  )}
+                </Card>
+              </Grid>
+            );
+          })}
         </Grid>
       )}
     </Container>

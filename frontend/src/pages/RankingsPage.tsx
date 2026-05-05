@@ -3,21 +3,21 @@ import { api } from '../apiConfig';
 import {
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Grid,
   CircularProgress,
   Alert,
-  Card,
+  Container,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Paper,
+  Tooltip,
+  Chip,
 } from '@mui/material';
+import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 interface Player {
   id: string;
@@ -29,224 +29,216 @@ interface PlayerRanking {
   player: Player;
   wins: number;
   losses: number;
-  winLossRatio: number;
+  winPct: number;
   gamesWon: number;
   gamesLost: number;
   gamesRatio: number;
+  matchesPlayed: number;
 }
 
-interface Tournament {
-  id: string;
-  name: string;
-  isGroupBased: boolean;
-  groupIds: string[];
+interface H2HEntry {
+  score1: number;
+  score2: number;
 }
 
-interface Group {
-  id: string;
-  name: string;
-  playerIds: string[];
+interface H2HData {
+  players: Player[];
+  h2h: Record<string, Record<string, H2HEntry | null>>;
 }
+
+const MEDAL = ['🥇', '🥈', '🥉'];
 
 const RankingsPage: React.FC = () => {
-  const [overallRankings, setOverallRankings] = useState<PlayerRanking[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedTournament, setSelectedTournament] = useState<string>('');
-  const [tournamentRankings, setTournamentRankings] = useState<PlayerRanking[]>([]);
-  const [groupRankings, setGroupRankings] = useState<{ [key: string]: PlayerRanking[] }>({});
-  const [loadingOverall, setLoadingOverall] = useState<boolean>(true);
-  const [loadingTournament, setLoadingTournament] = useState<boolean>(false);
-  const [errorOverall, setErrorOverall] = useState<string | null>(null);
-  const [errorTournament, setErrorTournament] = useState<string | null>(null);
+  const [rankings, setRankings] = useState<PlayerRanking[]>([]);
+  const [h2hData, setH2HData] = useState<H2HData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoadingOverall(true);
-      setErrorOverall(null);
+    const fetchAll = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Fetch overall rankings
-        const overallResponse = await api.get<PlayerRanking[]>('/rankings/overall');
-        setOverallRankings(overallResponse.data);
-
-        // Fetch tournaments for dropdown
-        const tournamentsResponse = await api.get<Tournament[]>('/tournaments');
-        setTournaments(tournamentsResponse.data);
-
-        // Fetch groups
-        const groupsResponse = await api.get<Group[]>('/groups');
-        setGroups(groupsResponse.data);
-
-      } catch (err: any) {
-        console.error("Error fetching data for RankingsPage:", err);
-        setErrorOverall('Failed to fetch overall rankings or tournament data.');
+        const [rankRes, h2hRes] = await Promise.all([
+          api.get<PlayerRanking[]>('/rankings/overall'),
+          api.get<H2HData>('/rankings/head-to-head'),
+        ]);
+        setRankings(rankRes.data);
+        setH2HData(h2hRes.data);
+      } catch {
+        setError('Failed to load rankings.');
       } finally {
-        setLoadingOverall(false);
+        setLoading(false);
       }
     };
-    fetchData();
+    fetchAll();
   }, []);
 
-  useEffect(() => {
-    const fetchTournamentRankings = async () => {
-      if (selectedTournament) {
-        setLoadingTournament(true);
-        setErrorTournament(null);
-        const tournament = tournaments.find(t => t.id === selectedTournament);
-        if (tournament?.isGroupBased) {
-          // Fetch rankings for each group
-          const groupRankingsData: { [key: string]: PlayerRanking[] } = {};
-          for (const groupId of tournament.groupIds) {
-            try {
-              const response = await api.get<PlayerRanking[]>(`/rankings/tournament/${selectedTournament}/group/${groupId}`);
-              groupRankingsData[groupId] = response.data;
-            } catch (err: any) {
-              console.error(`Error fetching group rankings for group ${groupId}:`, err);
-              setErrorTournament('Failed to fetch group rankings.');
-            }
-          }
-          setGroupRankings(groupRankingsData);
-          setTournamentRankings([]); // Clear the old tournament-wide rankings
-        } else {
-          // Fetch non-group-based rankings
-          try {
-            const response = await api.get<PlayerRanking[]>(`/rankings/tournament/${selectedTournament}`);
-            setTournamentRankings(response.data);
-            setGroupRankings({}); // Clear group rankings
-          } catch (err: any) {
-            console.error("Error fetching tournament rankings:", err);
-            setErrorTournament('Failed to fetch tournament rankings.');
-          }
-        }
-        setLoadingTournament(false);
-      } else {
-        setTournamentRankings([]);
-        setGroupRankings({});
-      }
-    };
-    fetchTournamentRankings();
-  }, [selectedTournament, tournaments]);
+  const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
-  const RankingsTable: React.FC<{ rankings: PlayerRanking[] }> = ({ rankings }) => (
-  <TableContainer component={Card} variant="outlined">
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Rank</TableCell>
-          <TableCell>Player</TableCell>
-          <TableCell>Wins</TableCell>
-          <TableCell>Losses</TableCell>
-          <TableCell>W/L Ratio</TableCell>
-          <TableCell>Games Won</TableCell>
-          <TableCell>Games Lost</TableCell>
-          <TableCell>Games Ratio</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {rankings.map((ranking, index) => (
-          <TableRow key={ranking.player.id}>
-            <TableCell>{index + 1}</TableCell>
-            <TableCell>{`${ranking.player.firstName} ${ranking.player.lastName}`}</TableCell>
-            <TableCell>{ranking.wins}</TableCell>
-            <TableCell>{ranking.losses}</TableCell>
-            <TableCell>{ranking.winLossRatio.toFixed(2)}</TableCell>
-            <TableCell>{ranking.gamesWon}</TableCell>
-            <TableCell>{ranking.gamesLost}</TableCell>
-            <TableCell>{ranking.gamesRatio.toFixed(2)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </TableContainer>
-);
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-const selectedTournamentDetails = tournaments.find(t => t.id === selectedTournament);
+  if (error) {
+    return <Container sx={{ mt: 4 }}><Alert severity="error">{error}</Alert></Container>;
+  }
 
   return (
-    <Box sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h2" gutterBottom>
-        Player Rankings
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <LeaderboardIcon color="info" />
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          Leaderboard
+        </Typography>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+        Soul Brothers Pakistan Tennis Championship 2025 — Overall Rankings
       </Typography>
 
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={6}>
-          <Typography variant="h5" component="h3" gutterBottom>
-            Overall Rankings
-          </Typography>
-          {loadingOverall ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : errorOverall ? (
-            <Alert severity="error" sx={{ mt: 2 }}>{errorOverall}</Alert>
-          ) : overallRankings.length === 0 ? (
-            <Typography sx={{ mt: 2 }}>No overall rankings available yet.</Typography>
-          ) : (
-            <RankingsTable rankings={overallRankings} />
-          )}
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Typography variant="h5" component="h3" gutterBottom>
-            Tournament Rankings
-          </Typography>
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel id="tournament-select-label">Select Tournament</InputLabel>
-            <Select
-              labelId="tournament-select-label"
-              id="tournament-select"
-              value={selectedTournament}
-              label="Select Tournament"
-              onChange={(e) => setSelectedTournament(e.target.value as string)}
-              variant="outlined" // Material 3 default
-            >
-              <MenuItem value="">-- Select a Tournament --</MenuItem>
-              {tournaments.map((tournament: Tournament) => (
-                <MenuItem key={tournament.id} value={tournament.id}>
-                  {tournament.name} {tournament.isGroupBased ? '(Group Based)' : ''}
-                </MenuItem>
+      {/* Leaderboard Table */}
+      {rankings.length === 0 ? (
+        <Alert severity="info" sx={{ mb: 4 }}>No matches recorded yet — standings will appear here once matches are played.</Alert>
+      ) : (
+        <TableContainer component={Paper} elevation={2} sx={{ mb: 6, borderRadius: 2, overflow: 'hidden' }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'success.main' }}>
+                {['Rank', 'Player', 'W', 'L', 'Played', 'Win %', 'Games Won', 'Games Lost', 'Games %'].map(h => (
+                  <TableCell key={h} sx={{ color: 'white', fontWeight: 700, py: 1.5 }}>{h}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rankings.map((r, i) => (
+                <TableRow
+                  key={r.player.id}
+                  sx={{
+                    bgcolor: i === 0 ? 'rgba(255,215,0,0.08)' : i % 2 === 0 ? 'action.hover' : 'background.paper',
+                    '&:hover': { bgcolor: 'action.selected' },
+                  }}
+                >
+                  <TableCell sx={{ fontWeight: 700 }}>
+                    {MEDAL[i] || i + 1}
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {i === 0 && <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 18 }} />}
+                      <Typography sx={{ fontWeight: i === 0 ? 700 : 400 }}>
+                        {r.player.firstName} {r.player.lastName}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={r.wins} size="small" color="success" sx={{ fontWeight: 700 }} />
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={r.losses} size="small" color="error" variant="outlined" sx={{ fontWeight: 700 }} />
+                  </TableCell>
+                  <TableCell>{r.matchesPlayed}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{pct(r.winPct)}</TableCell>
+                  <TableCell>{r.gamesWon}</TableCell>
+                  <TableCell>{r.gamesLost}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{pct(r.gamesRatio)}</TableCell>
+                </TableRow>
               ))}
-            </Select>
-          </FormControl>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-          {loadingTournament ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : errorTournament ? (
-            <Alert severity="error" sx={{ mt: 2 }}>{errorTournament}</Alert>
-          ) : selectedTournament && selectedTournamentDetails?.isGroupBased ? (
-            // Display group-based rankings
-            <Box>
-              {selectedTournamentDetails.groupIds.map((groupId: string) => {
-                const group = groups.find((g: Group) => g.id === groupId);
-                const rankings = groupRankings[groupId] || [];
-
-                return (
-                  <Card key={groupId} variant="outlined" sx={{ mb: 4, p: 2 }}>
-                    <Typography variant="h6" component="h4" gutterBottom>
-                      {group?.name || 'Unknown Group'} Rankings
-                    </Typography>
-                    {rankings.length === 0 ? (
-                      <Typography sx={{ mt: 2 }}>No rankings for this group yet.</Typography>
-                    ) : (
-                      <RankingsTable rankings={rankings} />
-                    )}
-                  </Card>
-                );
-              })}
-            </Box>
-          ) : selectedTournament && tournamentRankings.length > 0 ? (
-            // Display non-group-based rankings
-            <RankingsTable rankings={tournamentRankings} />
-          ) : selectedTournament ? (
-            <Typography sx={{ mt: 2 }}>No rankings available for this tournament yet.</Typography>
-          ) : (
-            <Typography sx={{ mt: 2 }}>Select a tournament to view its rankings.</Typography>
-          )}
-        </Grid>
-      </Grid>
-    </Box>
+      {/* Head-to-Head Matrix */}
+      {h2hData && h2hData.players.length > 0 && (
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+            Head-to-Head Results
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Row player's score vs column player. Green = win, Red = loss. Blank = not yet played.
+          </Typography>
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table size="small" sx={{ minWidth: 600 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 700, bgcolor: 'background.paper', borderBottom: 2 }}>vs</TableCell>
+                  {h2hData.players.map(p => (
+                    <Tooltip key={p.id} title={`${p.firstName} ${p.lastName}`} arrow>
+                      <TableCell
+                        align="center"
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.7rem',
+                          maxWidth: 60,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          borderBottom: 2,
+                          bgcolor: 'background.paper',
+                        }}
+                      >
+                        {p.firstName}
+                      </TableCell>
+                    </Tooltip>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {h2hData.players.map((rowPlayer, ri) => (
+                  <TableRow key={rowPlayer.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                      {rowPlayer.firstName} {rowPlayer.lastName}
+                    </TableCell>
+                    {h2hData.players.map((colPlayer, ci) => {
+                      if (rowPlayer.id === colPlayer.id) {
+                        return (
+                          <TableCell
+                            key={colPlayer.id}
+                            align="center"
+                            sx={{ bgcolor: 'grey.200', fontSize: '0.7rem' }}
+                          >
+                            —
+                          </TableCell>
+                        );
+                      }
+                      const result = h2hData.h2h[rowPlayer.id]?.[colPlayer.id];
+                      if (!result) {
+                        return (
+                          <TableCell key={colPlayer.id} align="center" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+                            ·
+                          </TableCell>
+                        );
+                      }
+                      const won = result.score1 > result.score2;
+                      return (
+                        <TableCell
+                          key={colPlayer.id}
+                          align="center"
+                          sx={{
+                            bgcolor: won ? 'rgba(46,125,50,0.15)' : 'rgba(211,47,47,0.1)',
+                            color: won ? 'success.dark' : 'error.dark',
+                            fontWeight: 700,
+                            fontSize: '0.75rem',
+                            border: '1px solid',
+                            borderColor: won ? 'success.light' : 'error.light',
+                          }}
+                        >
+                          {result.score1}–{result.score2}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </Box>
+      )}
+    </Container>
   );
 };
 
