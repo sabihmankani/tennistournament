@@ -51,6 +51,7 @@ const AdminDashboardPage: React.FC = () => {
   const [weekLabel, setWeekLabel] = useState('');
   const [addingMatch, setAddingMatch] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -112,6 +113,20 @@ const AdminDashboardPage: React.FC = () => {
       await api.delete('/admin/weekly-matches');
       setWeekly([]); setSuccess('Weekly schedule cleared.');
     } catch { setError('Failed to clear schedule.'); }
+  };
+
+  const handleSeedWeek1 = async () => {
+    if (!window.confirm('Seed 9 players + 9 Week 1 fixtures? (Existing players are kept, weekly schedule is replaced.)')) return;
+    setSeeding(true); setError(null);
+    try {
+      const res = await api.post('/admin/seed-week1');
+      setSuccess(res.data.message);
+      await fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Seed failed.');
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const handleClearAllData = async () => {
@@ -407,6 +422,31 @@ const AdminDashboardPage: React.FC = () => {
                   </TableBody>
                 </Table>
               </Box>
+            </Box>
+
+            {/* ── Seed Data ── */}
+            <Box sx={{ ...cardSx, border: `1px solid ${c.green}44` }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>Quick Seed</Typography>
+              </Box>
+              <Typography sx={{ color: c.textMuted, fontSize: '0.875rem', mb: 2 }}>
+                Adds all 9 players + Week 1 fixtures in one click. Skips players that already exist. Replaces weekly schedule.
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={handleSeedWeek1}
+                disabled={seeding}
+                sx={{
+                  bgcolor: '#1B5E20',
+                  color: '#fff',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: '#155216' },
+                  boxShadow: 'none',
+                }}
+              >
+                {seeding ? 'Seeding…' : '🌱 Seed Week 1 Players + Fixtures'}
+              </Button>
             </Box>
 
             {/* ── Danger Zone ── */}

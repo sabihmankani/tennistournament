@@ -295,6 +295,50 @@ app.get('/api/admin/match-logs', async (req: AuthRequest, res) => {
   } catch { res.status(500).send('Server Error'); }
 });
 
+// Seed Week 1 players + fixtures (idempotent — skips existing players)
+app.post('/api/admin/seed-week1', async (req: AuthRequest, res) => {
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const PLAYERS = [
+      { firstName: 'Haseeb',  lastName: 'Ahmad' },
+      { firstName: 'Sabih',   lastName: 'Mankani' },
+      { firstName: 'Usman',   lastName: 'Danish' },
+      { firstName: 'Meran',   lastName: 'Eshaq' },
+      { firstName: 'Talha',   lastName: 'Ahmad' },
+      { firstName: 'Shauzab', lastName: 'Hasan' },
+      { firstName: 'Waleed',  lastName: 'Ahmad' },
+      { firstName: 'Umair',   lastName: 'Malik' },
+      { firstName: 'Naveed',  lastName: 'Ahmad' },
+    ];
+    const WEEK_LABEL = 'Week 1 — May 5–10, 2026';
+
+    // Upsert players
+    const idMap: Record<string, string> = {};
+    for (const p of PLAYERS) {
+      let player = await Player.findOne({ firstName: p.firstName });
+      if (!player) {
+        player = await Player.create(p);
+      }
+      idMap[p.firstName.toLowerCase()] = player._id.toString();
+    }
+
+    // Rebuild weekly schedule
+    await WeeklyMatch.deleteMany({});
+    const FIXTURES: [string, string][] = [
+      ['haseeb', 'sabih'],   ['sabih', 'usman'],
+      ['meran', 'talha'],    ['shauzab', 'waleed'],
+      ['umair', 'naveed'],   ['usman', 'haseeb'],
+      ['talha', 'shauzab'],  ['waleed', 'umair'],
+      ['naveed', 'meran'],
+    ];
+    for (const [h, a] of FIXTURES) {
+      await WeeklyMatch.create({ player1Id: idMap[h], player2Id: idMap[a], weekLabel: WEEK_LABEL });
+    }
+
+    res.json({ message: 'Seeded 9 players and 9 Week 1 fixtures.', players: Object.keys(idMap) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
 // Wipe all data (players, matches, ratelimits, weekly) — use with caution
 app.delete('/api/admin/clear-all', async (req: AuthRequest, res) => {
   if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
