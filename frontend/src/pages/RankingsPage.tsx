@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box, Typography, CircularProgress, Alert, Container,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, Tooltip, Chip,
-} from '@mui/material';
-import LeaderboardIcon from '@mui/icons-material/Leaderboard';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { Box, Typography, CircularProgress, Tooltip } from '@mui/material';
+import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
 import { api } from '../apiConfig';
+import { useAppTheme } from '../context/ThemeContext';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface Player { id: string; firstName: string; lastName: string; }
 
@@ -24,15 +21,11 @@ interface PlayerRanking {
 interface H2HEntry { score1: number; score2: number; }
 interface H2HData { players: Player[]; h2h: Record<string, Record<string, H2HEntry | null>>; }
 
-const MEDAL = ['🥇', '🥈', '🥉'];
-
-const darkCell = { borderColor: '#1a2e1a', py: 1 };
-
 const RankingsPage: React.FC = () => {
+  const { c } = useAppTheme();
   const [rankings, setRankings] = useState<PlayerRanking[]>([]);
   const [h2hData, setH2HData] = useState<H2HData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -43,180 +36,277 @@ const RankingsPage: React.FC = () => {
         setRankings(rankRes.data);
         setH2HData(h2hRes.data);
       })
-      .catch(() => setError('Failed to load rankings.'))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#0a0f0a', display: 'flex', justifyContent: 'center', pt: 12 }}>
-        <CircularProgress sx={{ color: '#c8ff00' }} />
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0a0f0a' }}>
-      {/* Header */}
-      <Box sx={{ background: 'linear-gradient(135deg, #0d2e0d 0%, #1a4d1a 100%)', borderBottom: '2px solid #4caf50', py: 3, px: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <LeaderboardIcon sx={{ color: '#c8ff00' }} />
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#c8ff00' }}>Standings</Typography>
-        </Box>
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
-          SBP Summer Tennis League 2026 — Win = 3 pts · Tiebreaker: H2H → Game diff → Games won
-        </Typography>
-      </Box>
-
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-
-        {/* Main leaderboard */}
-        {rankings.length === 0 ? (
-          <Alert
-            severity="info"
-            sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', color: 'rgba(255,255,255,0.6)' }}
-          >
-            No matches played yet — standings will appear here after the first match is recorded.
-          </Alert>
+    <Box sx={{ minHeight: '100vh', bgcolor: c.bg, transition: 'background-color 0.2s' }}>
+      <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: 3 }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
+            <CircularProgress sx={{ color: c.green }} size={32} />
+          </Box>
         ) : (
-          <TableContainer
-            component={Paper}
-            sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', borderRadius: 2, mb: 6 }}
-          >
-            <Table>
-              <TableHead>
-                <TableRow sx={{ bgcolor: '#0d2e0d' }}>
-                  {['Rank', 'Player', 'Pts', 'W', 'L', 'Played', '+/−', 'GW'].map(h => (
-                    <TableCell key={h} sx={{ color: '#c8ff00', fontWeight: 700, py: 1.5, borderColor: '#1e3a1e' }}>
-                      {h}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rankings.map((r, i) => (
-                  <TableRow
-                    key={r.player.id}
+          <>
+            {/* ── Standings ── */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <EmojiEventsOutlinedIcon sx={{ color: c.text, fontSize: 22 }} />
+                <Typography sx={{ fontWeight: 700, fontSize: '1.3rem', color: c.text }}>
+                  Standings
+                </Typography>
+                {rankings.length > 0 && (
+                  <Box
                     sx={{
-                      bgcolor: i === 0 ? 'rgba(200,255,0,0.05)' : 'transparent',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+                      px: 1,
+                      py: 0.2,
+                      borderRadius: 50,
+                      bgcolor: c.border,
+                      fontSize: '0.75rem',
+                      color: c.textMuted,
+                      fontWeight: 600,
+                      lineHeight: 1.6,
                     }}
                   >
-                    <TableCell sx={{ ...darkCell, fontWeight: 700, color: '#c8ff00' }}>
-                      {MEDAL[i] || i + 1}
-                    </TableCell>
-                    <TableCell sx={darkCell}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {i === 0 && <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 16 }} />}
-                        <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: i < 3 ? 700 : 400 }}>
-                          {r.player.firstName} {r.player.lastName}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell sx={darkCell}>
-                      <Typography sx={{ color: '#c8ff00', fontWeight: 900, fontSize: '1.1rem' }}>
-                        {r.points}
-                      </Typography>
-                    </TableCell>
-                    <TableCell sx={darkCell}>
-                      <Chip label={r.wins} size="small" sx={{ bgcolor: 'rgba(76,175,80,0.2)', color: '#4caf50', fontWeight: 700 }} />
-                    </TableCell>
-                    <TableCell sx={darkCell}>
-                      <Chip label={r.losses} size="small" sx={{ bgcolor: 'rgba(239,83,80,0.15)', color: '#ef5350', fontWeight: 700 }} />
-                    </TableCell>
-                    <TableCell sx={{ ...darkCell, color: 'rgba(255,255,255,0.5)' }}>{r.matchesPlayed}</TableCell>
-                    <TableCell sx={{ ...darkCell, color: r.gameDiff >= 0 ? '#4caf50' : '#ef5350', fontWeight: 700 }}>
-                      {r.gameDiff > 0 ? '+' : ''}{r.gameDiff}
-                    </TableCell>
-                    <TableCell sx={{ ...darkCell, color: 'rgba(255,255,255,0.6)' }}>{r.gamesWon}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+                    {rankings.length}
+                  </Box>
+                )}
+              </Box>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: c.textMuted, letterSpacing: '0.06em' }}>
+                WIN = 3PTS
+              </Typography>
+            </Box>
 
-        {/* Head-to-Head Matrix */}
-        {h2hData && h2hData.players.length > 0 && (
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#c8ff00', mb: 0.5 }}>
-              Head-to-Head
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', mb: 2 }}>
-              Row player's score vs column player. Green = win · Red = loss · · = not yet played.
-            </Typography>
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table size="small" sx={{ minWidth: 500 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ bgcolor: '#111c11', color: '#c8ff00', fontWeight: 700, borderColor: '#1a2e1a' }}>
-                      vs
-                    </TableCell>
-                    {h2hData.players.map(p => (
-                      <Tooltip key={p.id} title={`${p.firstName} ${p.lastName}`} arrow>
-                        <TableCell
-                          align="center"
-                          sx={{
-                            bgcolor: '#111c11', color: '#c8ff00', fontWeight: 700,
-                            fontSize: '0.65rem', maxWidth: 50, whiteSpace: 'nowrap',
-                            overflow: 'hidden', textOverflow: 'ellipsis',
-                            borderColor: '#1a2e1a',
-                          }}
-                        >
-                          {p.firstName}
-                        </TableCell>
-                      </Tooltip>
-                    ))}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {h2hData.players.map(rowP => (
-                    <TableRow key={rowP.id} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                      <TableCell sx={{ bgcolor: '#111c11', color: 'rgba(255,255,255,0.8)', fontWeight: 600, fontSize: '0.7rem', whiteSpace: 'nowrap', borderColor: '#1a2e1a' }}>
-                        {rowP.firstName} {rowP.lastName}
-                      </TableCell>
-                      {h2hData.players.map(colP => {
-                        if (rowP.id === colP.id) {
-                          return (
-                            <TableCell key={colP.id} align="center" sx={{ bgcolor: '#0d2e0d', color: '#2e4a2e', borderColor: '#1a2e1a' }}>
-                              —
-                            </TableCell>
-                          );
-                        }
-                        const result = h2hData.h2h[rowP.id]?.[colP.id];
-                        if (!result) {
-                          return (
-                            <TableCell key={colP.id} align="center" sx={{ color: 'rgba(255,255,255,0.15)', borderColor: '#1a2e1a', bgcolor: '#0d120d' }}>
-                              ·
-                            </TableCell>
-                          );
-                        }
-                        const won = result.score1 > result.score2;
-                        return (
-                          <TableCell
-                            key={colP.id}
-                            align="center"
+            <Box
+              sx={{
+                bgcolor: c.cardBg,
+                borderRadius: 2.5,
+                border: `1px solid ${c.border}`,
+                overflow: 'hidden',
+                mb: 4,
+              }}
+            >
+              {/* Table header */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '44px 1fr 56px 56px 64px 64px',
+                  px: 2,
+                  py: 1.25,
+                  borderBottom: `1px solid ${c.border}`,
+                }}
+              >
+                {['#', 'PLAYER', 'W', 'L', '+/−', 'PTS'].map(h => (
+                  <Typography key={h} sx={{ fontSize: '0.62rem', fontWeight: 700, color: c.textMuted, letterSpacing: '0.1em' }}>
+                    {h}
+                  </Typography>
+                ))}
+              </Box>
+
+              {rankings.length === 0 ? (
+                <Box sx={{ py: 5, textAlign: 'center' }}>
+                  <Typography sx={{ color: c.textMuted }}>No matches yet.</Typography>
+                </Box>
+              ) : (
+                rankings.map((r, i) => (
+                  <Box
+                    key={r.player.id}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: '44px 1fr 56px 56px 64px 64px',
+                      px: 2,
+                      py: 1.35,
+                      alignItems: 'center',
+                      borderBottom: i < rankings.length - 1 ? `1px solid ${c.border}` : 'none',
+                      '&:hover': { bgcolor: c.border },
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: 700,
+                        color: i === 0 ? c.green : c.textMuted,
+                      }}
+                    >
+                      {i + 1}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PlayerAvatar firstName={r.player.firstName} lastName={r.player.lastName} size={28} />
+                      <Typography sx={{ fontSize: '0.9rem', fontWeight: i < 3 ? 600 : 400, color: c.text }}>
+                        {r.player.firstName} {r.player.lastName}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: c.winColor }}>
+                      {r.wins}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem', color: r.losses > 0 ? c.lossColor : c.textMuted }}>
+                      {r.losses}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: r.gameDiff > 0 ? c.winColor : r.gameDiff < 0 ? c.lossColor : c.textMuted,
+                      }}
+                    >
+                      {r.gameDiff > 0 ? '+' : ''}{r.gameDiff}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: c.text }}>
+                      {r.points}
+                    </Typography>
+                  </Box>
+                ))
+              )}
+            </Box>
+
+            {/* ── Head-to-Head ── */}
+            {h2hData && h2hData.players.length > 0 && (
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: c.text }}>
+                    Head-to-head
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: c.textMuted, letterSpacing: '0.08em' }}>
+                    ROW VS COLUMN
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    bgcolor: c.cardBg,
+                    borderRadius: 2.5,
+                    border: `1px solid ${c.border}`,
+                    overflow: 'auto',
+                  }}
+                >
+                  <Box sx={{ minWidth: 'max-content' }}>
+                    {/* Header row */}
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: `120px repeat(${h2hData.players.length}, 52px)`,
+                        borderBottom: `1px solid ${c.border}`,
+                      }}
+                    >
+                      <Box sx={{ p: 1 }} />
+                      {h2hData.players.map(p => (
+                        <Tooltip key={p.id} title={`${p.firstName} ${p.lastName}`} arrow>
+                          <Box
                             sx={{
-                              bgcolor: won ? 'rgba(76,175,80,0.15)' : 'rgba(239,83,80,0.1)',
-                              color: won ? '#4caf50' : '#ef5350',
-                              fontWeight: 700, fontSize: '0.75rem',
-                              border: '1px solid',
-                              borderColor: won ? 'rgba(76,175,80,0.3)' : 'rgba(239,83,80,0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              py: 1,
                             }}
                           >
-                            {result.score1}–{result.score2}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-          </Box>
+                            <PlayerAvatar firstName={p.firstName} lastName={p.lastName} size={24} />
+                          </Box>
+                        </Tooltip>
+                      ))}
+                    </Box>
+
+                    {/* Data rows */}
+                    {h2hData.players.map((rowP, ri) => (
+                      <Box
+                        key={rowP.id}
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: `120px repeat(${h2hData.players.length}, 52px)`,
+                          borderBottom: ri < h2hData.players.length - 1 ? `1px solid ${c.border}` : 'none',
+                          '&:hover': { bgcolor: c.border },
+                        }}
+                      >
+                        {/* Row label */}
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            px: 1.5,
+                            py: 1,
+                            borderRight: `1px solid ${c.border}`,
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '0.8rem', color: c.text, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                            {rowP.firstName}
+                          </Typography>
+                        </Box>
+
+                        {/* Cells */}
+                        {h2hData.players.map(colP => {
+                          if (rowP.id === colP.id) {
+                            return (
+                              <Box
+                                key={colP.id}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  bgcolor: c.border,
+                                }}
+                              >
+                                <Typography sx={{ color: c.textSubtle, fontSize: '0.875rem' }}>—</Typography>
+                              </Box>
+                            );
+                          }
+
+                          const result = h2hData.h2h[rowP.id]?.[colP.id];
+                          if (!result) {
+                            return (
+                              <Box
+                                key={colP.id}
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Typography sx={{ color: c.textSubtle, fontSize: '0.75rem' }}>·</Typography>
+                              </Box>
+                            );
+                          }
+
+                          const won = result.score1 > result.score2;
+                          return (
+                            <Box
+                              key={colP.id}
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: won ? `${c.winColor}18` : `${c.lossColor}12`,
+                              }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  color: won ? c.winColor : c.lossColor,
+                                  fontVariantNumeric: 'tabular-nums',
+                                }}
+                              >
+                                {result.score1}–{result.score2}
+                              </Typography>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              </Box>
+            )}
+          </>
         )}
-      </Container>
+      </Box>
+
+      {/* Footer */}
+      <Box sx={{ borderTop: `1px solid ${c.border}`, py: 2.5, textAlign: 'center', mt: 4 }}>
+        <Typography sx={{ fontSize: '0.68rem', color: c.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          SBP Summer League · Energy · Balance · Brotherhood
+        </Typography>
+      </Box>
     </Box>
   );
 };

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../apiConfig';
-import {
-  Box, Typography, IconButton, CircularProgress, Alert,
-  Container, Grid, Card, CardContent, CardActions, Chip,
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { Box, Typography, CircularProgress, IconButton } from '@mui/material';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { useAppTheme } from '../context/ThemeContext';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface Player { id: string; firstName: string; lastName: string; }
 
@@ -22,132 +22,196 @@ interface MatchesPageProps {
 }
 
 const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
+  const { c } = useAppTheme();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchMatches = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<Match[]>('/matches');
-      setMatches(res.data);
-    } catch {
-      setError('Failed to load results.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchMatches(); }, []);
+  useEffect(() => {
+    api.get<Match[]>('/matches')
+      .then(r => setMatches(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this match result?')) return;
     try {
       await api.delete(`/matches/${id}`);
       setMatches(prev => prev.filter(m => m.id !== id));
-    } catch {
-      setError('Failed to delete.');
-    }
+    } catch { /* ignore */ }
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0a0f0a' }}>
-      <Box sx={{ background: 'linear-gradient(135deg, #0d2e0d, #1a4d1a)', borderBottom: '2px solid #4caf50', py: 3, px: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#c8ff00' }}>Match Results</Typography>
-        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
-          {matches.length} match{matches.length !== 1 ? 'es' : ''} recorded
-        </Typography>
-      </Box>
-
-      <Container sx={{ py: 4 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
-            <CircularProgress sx={{ color: '#c8ff00' }} />
+    <Box sx={{ minHeight: '100vh', bgcolor: c.bg, transition: 'background-color 0.2s' }}>
+      <Box sx={{ maxWidth: 640, mx: 'auto', px: 2, py: 3 }}>
+        {/* Page header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
+          <FormatListBulletedIcon sx={{ color: c.text, fontSize: 22 }} />
+          <Typography sx={{ fontWeight: 700, fontSize: '1.3rem', color: c.text }}>
+            Results
+          </Typography>
+          <Box
+            sx={{
+              px: 1,
+              py: 0.2,
+              borderRadius: 50,
+              bgcolor: c.border,
+              fontSize: '0.75rem',
+              color: c.textMuted,
+              fontWeight: 600,
+              lineHeight: 1.6,
+            }}
+          >
+            {matches.length}
           </Box>
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
+        </Box>
+
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
+            <CircularProgress sx={{ color: c.green }} size={32} />
+          </Box>
         ) : matches.length === 0 ? (
-          <Alert severity="info" sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', color: 'rgba(255,255,255,0.6)' }}>
-            No matches recorded yet.
-          </Alert>
+          <Box
+            sx={{
+              bgcolor: c.cardBg,
+              borderRadius: 2.5,
+              border: `1px dashed ${c.borderStrong}`,
+              py: 6,
+              textAlign: 'center',
+            }}
+          >
+            <Typography sx={{ fontSize: '2rem', mb: 1.5 }}>🎾</Typography>
+            <Typography sx={{ color: c.textMuted, fontWeight: 500 }}>
+              No matches played yet.
+            </Typography>
+            <Typography sx={{ color: c.textSubtle, fontSize: '0.875rem', mt: 0.5 }}>
+              Record a Week 1 fixture to see results here.
+            </Typography>
+          </Box>
         ) : (
-          <Grid container spacing={2}>
-            {matches.map(match => {
+          <Box
+            sx={{
+              bgcolor: c.cardBg,
+              borderRadius: 2.5,
+              border: `1px solid ${c.border}`,
+              overflow: 'hidden',
+            }}
+          >
+            {matches.map((match, i) => {
               const p1Won = match.score1 > match.score2;
-              const p1 = `${match.player1Id?.firstName || '?'} ${match.player1Id?.lastName || ''}`.trim();
-              const p2 = `${match.player2Id?.firstName || '?'} ${match.player2Id?.lastName || ''}`.trim();
-              const date = new Date(match.date).toLocaleDateString('en-CA', {
-                day: 'numeric', month: 'short', year: 'numeric',
+              const p1 = match.player1Id;
+              const p2 = match.player2Id;
+              const date = new Date(match.date).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
               });
 
               return (
-                <Grid item xs={12} sm={6} md={4} key={match.id}>
-                  <Card
+                <Box
+                  key={match.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    px: 2,
+                    py: 1.5,
+                    borderBottom: i < matches.length - 1 ? `1px solid ${c.border}` : 'none',
+                    '&:hover': { bgcolor: c.border },
+                  }}
+                >
+                  {/* Date */}
+                  <Typography
                     sx={{
-                      height: '100%',
-                      bgcolor: '#111c11',
-                      border: '1px solid #1e3a1e',
-                      borderTop: '3px solid #4caf50',
-                      '&:hover': { borderColor: '#4caf50' },
+                      fontSize: '0.72rem',
+                      color: c.textSubtle,
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: 36,
+                      textAlign: 'center',
                     }}
                   >
-                    <CardContent>
-                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mb: 1.5 }}>
-                        {date}
-                      </Typography>
+                    {date}
+                  </Typography>
 
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                        <Box sx={{ flex: 1, textAlign: 'center' }}>
-                          <Typography variant="body2" sx={{
-                            color: p1Won ? '#c8ff00' : 'rgba(255,255,255,0.7)',
-                            fontWeight: p1Won ? 700 : 400,
-                          }}>
-                            {p1Won && '🏆 '}{p1}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: 'center', minWidth: 70 }}>
-                          <Typography variant="h5" sx={{ fontWeight: 900, color: '#c8ff00', letterSpacing: 2 }}>
-                            {match.score1}–{match.score2}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: 'center' }}>
-                          <Typography variant="body2" sx={{
-                            color: !p1Won ? '#c8ff00' : 'rgba(255,255,255,0.7)',
-                            fontWeight: !p1Won ? 700 : 400,
-                          }}>
-                            {!p1Won && '🏆 '}{p2}
-                          </Typography>
-                        </Box>
-                      </Box>
+                  {/* Player 1 */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, justifyContent: 'flex-end' }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: p1Won ? 700 : 400,
+                        color: p1Won ? c.text : c.textMuted,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {p1.firstName}
+                    </Typography>
+                    <PlayerAvatar firstName={p1.firstName} lastName={p1.lastName} size={26} />
+                  </Box>
 
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1.5 }}>
-                        <Chip
-                          label={`Winner: ${p1Won ? p1 : p2}`}
-                          size="small"
-                          sx={{
-                            bgcolor: 'rgba(76,175,80,0.15)',
-                            color: '#4caf50',
-                            border: '1px solid rgba(76,175,80,0.3)',
-                            fontSize: '0.65rem',
-                          }}
-                        />
-                      </Box>
-                    </CardContent>
+                  {/* Score */}
+                  <Box
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      bgcolor: c.border,
+                      borderRadius: 1.5,
+                      minWidth: 64,
+                      textAlign: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                        color: c.text,
+                        fontVariantNumeric: 'tabular-nums',
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {match.score1}–{match.score2}
+                    </Typography>
+                  </Box>
 
-                    {isAdminLoggedIn && (
-                      <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
-                        <IconButton size="small" color="error" onClick={() => handleDelete(match.id)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </CardActions>
-                    )}
-                  </Card>
-                </Grid>
+                  {/* Player 2 */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
+                    <PlayerAvatar firstName={p2.firstName} lastName={p2.lastName} size={26} />
+                    <Typography
+                      sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: !p1Won ? 700 : 400,
+                        color: !p1Won ? c.text : c.textMuted,
+                      }}
+                    >
+                      {p2.firstName}
+                    </Typography>
+                  </Box>
+
+                  {/* Admin delete */}
+                  {isAdminLoggedIn && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(match.id)}
+                      sx={{ color: c.textSubtle, '&:hover': { color: c.lossColor }, ml: 'auto' }}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Box>
               );
             })}
-          </Grid>
+          </Box>
         )}
-      </Container>
+      </Box>
+
+      {/* Footer */}
+      <Box sx={{ borderTop: `1px solid ${c.border}`, py: 2.5, textAlign: 'center', mt: 4 }}>
+        <Typography sx={{ fontSize: '0.68rem', color: c.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          SBP Summer League · Energy · Balance · Brotherhood
+        </Typography>
+        <Typography sx={{ fontSize: '0.68rem', color: c.textSubtle, mt: 0.25 }}>
+          Admin · Usman Danish
+        </Typography>
+      </Box>
     </Box>
   );
 };
