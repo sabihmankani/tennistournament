@@ -55,17 +55,17 @@ const AdminDashboardPage: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [wmRes, logRes, plRes] = await Promise.all([
+      const [wmRes, logRes, plRes] = await Promise.allSettled([
         api.get<WeeklyMatchEntry[]>('/weekly-matches'),
         api.get<MatchLog[]>('/admin/match-logs'),
         api.get<Player[]>('/players'),
       ]);
-      setWeekly(wmRes.data);
-      setMatchLogs(logRes.data);
-      setPlayers(plRes.data);
-      if (wmRes.data.length > 0) setWeekLabel(wmRes.data[0].weekLabel || '');
-    } catch {
-      setError('Failed to load data.');
+      if (wmRes.status === 'fulfilled') {
+        setWeekly(wmRes.value.data);
+        if (wmRes.value.data.length > 0) setWeekLabel(wmRes.value.data[0].weekLabel || '');
+      }
+      if (logRes.status === 'fulfilled') setMatchLogs(logRes.value.data);
+      if (plRes.status === 'fulfilled') setPlayers(plRes.value.data);
     } finally {
       setLoading(false);
     }

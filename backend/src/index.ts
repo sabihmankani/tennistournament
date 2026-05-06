@@ -205,24 +205,37 @@ app.get('/api/weekly-matches', async (_req, res) => {
       .populate('player1Id player2Id')
       .sort({ createdAt: 1 });
 
-    const result = await Promise.all(weekly.map(async wm => {
-      const p1 = wm.player1Id.toString();
-      const p2 = wm.player2Id.toString();
+    if (weekly.length === 0) return res.json([]);
 
-      // Check if this match has been recorded after the weekly entry was created
-      const recorded = await Match.findOne({
-        $or: [
-          { player1Id: new mongoose.Types.ObjectId(p1), player2Id: new mongoose.Types.ObjectId(p2) },
-          { player1Id: new mongoose.Types.ObjectId(p2), player2Id: new mongoose.Types.ObjectId(p1) },
-        ],
-        date: { $gte: wm.createdAt },
-      }).populate('player1Id player2Id');
+    // Single batch query for all relevant matches instead of N sequential queries
+    const earliest = weekly.reduce(
+      (min, wm) => (wm.createdAt < min ? wm.createdAt : min),
+      weekly[0].createdAt,
+    );
+    const allMatches = await Match.find({ date: { $gte: earliest } })
+      .populate('player1Id player2Id')
+      .lean();
+
+    const result = weekly.map(wm => {
+      const p1id = (wm.player1Id as any)._id.toString();
+      const p2id = (wm.player2Id as any)._id.toString();
+
+      const recorded = allMatches.find(m => {
+        const mp1 = (m.player1Id as any)._id.toString();
+        const mp2 = (m.player2Id as any)._id.toString();
+        return (
+          new Date(m.date) >= wm.createdAt &&
+          ((mp1 === p1id && mp2 === p2id) || (mp1 === p2id && mp2 === p1id))
+        );
+      });
 
       const formatted = formatDoc(wm);
       formatted.isCompleted = !!recorded;
-      formatted.completedMatch = recorded ? formatDoc(recorded) : null;
+      formatted.completedMatch = recorded
+        ? { ...recorded, id: (recorded as any)._id.toString() }
+        : null;
       return formatted;
-    }));
+    });
 
     res.json(result);
   } catch { res.status(500).send('Server Error'); }
