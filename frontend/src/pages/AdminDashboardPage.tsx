@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../apiConfig';
 import {
   Typography, Button, Container, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Paper, CircularProgress,
-  Alert, Box, Chip, Divider, FormControl, InputLabel, Select,
-  MenuItem, TextField, IconButton,
+  TableHead, TableRow, CircularProgress,
+  Alert, Box, FormControl, InputLabel, Select,
+  MenuItem, TextField, IconButton, Divider,
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import { useAppTheme } from '../context/ThemeContext';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface Player { id: string; firstName: string; lastName: string; }
 
@@ -34,23 +37,21 @@ interface MatchLog {
 }
 
 const AdminDashboardPage: React.FC = () => {
+  const { c } = useAppTheme();
   const navigate = useNavigate();
 
-  // State
   const [players, setPlayers] = useState<Player[]>([]);
   const [weekly, setWeekly] = useState<WeeklyMatchEntry[]>([]);
   const [matchLogs, setMatchLogs] = useState<MatchLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Add match form
   const [newP1, setNewP1] = useState('');
   const [newP2, setNewP2] = useState('');
   const [weekLabel, setWeekLabel] = useState('');
   const [addingMatch, setAddingMatch] = useState(false);
-
   const [clearingAll, setClearingAll] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -83,11 +84,8 @@ const AdminDashboardPage: React.FC = () => {
   };
 
   const handleAddWeeklyMatch = async () => {
-    if (!newP1 || !newP2 || newP1 === newP2) {
-      setError('Select two different players.'); return;
-    }
-    setAddingMatch(true);
-    setError(null);
+    if (!newP1 || !newP2 || newP1 === newP2) { setError('Select two different players.'); return; }
+    setAddingMatch(true); setError(null);
     try {
       await api.post('/admin/weekly-matches', { player1Id: newP1, player2Id: newP2, weekLabel });
       setNewP1(''); setNewP2('');
@@ -105,7 +103,7 @@ const AdminDashboardPage: React.FC = () => {
       await api.delete(`/admin/weekly-matches/${id}`);
       setWeekly(prev => prev.filter(m => m.id !== id));
     } catch {
-      setError('Failed to remove match from schedule.');
+      setError('Failed to remove match.');
     }
   };
 
@@ -113,103 +111,137 @@ const AdminDashboardPage: React.FC = () => {
     if (!window.confirm('Clear all matches from this week\'s schedule?')) return;
     try {
       await api.delete('/admin/weekly-matches');
-      setWeekly([]);
-      setSuccess('Weekly schedule cleared.');
-    } catch {
-      setError('Failed to clear schedule.');
+      setWeekly([]); setSuccess('Weekly schedule cleared.');
+    } catch { setError('Failed to clear schedule.'); }
+  };
+
+  const handleSeedWeek1 = async () => {
+    if (!window.confirm('Seed 9 players + 9 Week 1 fixtures? (Existing players are kept, weekly schedule is replaced.)')) return;
+    setSeeding(true); setError(null);
+    try {
+      const res = await api.post('/admin/seed-week1');
+      setSuccess(res.data.message);
+      await fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Seed failed.');
+    } finally {
+      setSeeding(false);
     }
   };
 
   const handleClearAllData = async () => {
-    if (!window.confirm('⚠️ This will delete ALL players, matches, and schedule. Are you absolutely sure?')) return;
-    if (!window.confirm('Last chance — delete everything?')) return;
+    if (!window.confirm('⚠️ Delete ALL players, matches, and schedule?')) return;
+    if (!window.confirm('Last chance — this cannot be undone.')) return;
     setClearingAll(true);
     try {
       await api.delete('/admin/clear-all');
       setSuccess('All data cleared.');
       setWeekly([]); setMatchLogs([]); setPlayers([]);
-    } catch {
-      setError('Failed to clear data.');
-    } finally {
-      setClearingAll(false);
-    }
+    } catch { setError('Failed to clear data.'); }
+    finally { setClearingAll(false); }
   };
 
   const handleUpdateLabel = async () => {
     try {
       await api.put('/admin/weekly-matches/label', { weekLabel });
       setSuccess('Week label updated.');
-    } catch {
-      setError('Failed to update label.');
-    }
+    } catch { setError('Failed to update label.'); }
   };
 
-  const sx = {
-    page: { bgcolor: '#0a0f0a', minHeight: '100vh' },
-    header: { background: 'linear-gradient(135deg, #0d2e0d, #1a4d1a)', borderBottom: '2px solid #4caf50', py: 3, px: 3 },
-    card: { bgcolor: '#111c11', border: '1px solid #1e3a1e', borderRadius: 2, p: 3, mb: 4 },
-    label: { color: 'rgba(255,255,255,0.5)' },
-    text: { color: 'rgba(255,255,255,0.85)' },
-    border: { borderColor: '#1a2e1a' },
+  const cardSx = {
+    bgcolor: c.cardBg,
+    border: `1px solid ${c.border}`,
+    borderRadius: 3,
+    p: 3,
+    mb: 3,
   };
+
+  const selectSx = {
+    color: c.text,
+    bgcolor: c.surface,
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: c.border },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: c.borderStrong },
+    '& .MuiSvgIcon-root': { color: c.textMuted },
+  };
+
+  const fieldSx = {
+    '& .MuiInputLabel-root': { color: c.textMuted },
+    '& .MuiOutlinedInput-root': {
+      color: c.text,
+      bgcolor: c.surface,
+      '& fieldset': { borderColor: c.border },
+      '&:hover fieldset': { borderColor: c.borderStrong },
+    },
+  };
+
+  const cellSx = { color: c.text, borderColor: c.border, py: 1, fontSize: '0.8rem' };
 
   return (
-    <Box sx={sx.page}>
-      {/* Header */}
-      <Box sx={sx.header}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AdminPanelSettingsIcon sx={{ color: '#c8ff00' }} />
+    <Box sx={{ minHeight: '100vh', bgcolor: c.bg, transition: 'background-color 0.2s' }}>
+      <Container maxWidth="lg" sx={{ py: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <AdminPanelSettingsIcon sx={{ color: c.green, fontSize: 24 }} />
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#c8ff00' }}>Admin Dashboard</Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>SBP Summer Tennis League 2026</Typography>
+              <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: c.text }}>Admin Dashboard</Typography>
+              <Typography sx={{ fontSize: '0.72rem', color: c.textMuted }}>SBP Summer Tennis League 2026</Typography>
             </Box>
           </Box>
-          <Button variant="outlined" color="error" onClick={handleLogout} size="small">Logout</Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleLogout}
+            sx={{
+              borderColor: c.lossColor + '66',
+              color: c.lossColor,
+              textTransform: 'none',
+              '&:hover': { borderColor: c.lossColor, bgcolor: c.lossColor + '11' },
+            }}
+          >
+            Logout
+          </Button>
         </Box>
-      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
-            <CircularProgress sx={{ color: '#c8ff00' }} />
+            <CircularProgress sx={{ color: c.green }} size={32} />
           </Box>
         ) : (
           <>
             {/* ── Weekly Schedule ── */}
-            <Box sx={sx.card}>
-              <Typography variant="h6" sx={{ color: '#c8ff00', fontWeight: 700, mb: 0.5 }}>
+            <Box sx={cardSx}>
+              <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text, mb: 0.5 }}>
                 This Week's Schedule
               </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', mb: 2 }}>
-                Set which matches need to be played this week. Players will see "Record Score" buttons on the home page.
+              <Typography sx={{ fontSize: '0.78rem', color: c.textMuted, mb: 2.5 }}>
+                Set which matches need to be played this week.
               </Typography>
 
               {/* Week label */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, mb: 3, alignItems: 'center' }}>
                 <TextField
                   size="small"
-                  label="Week label (e.g. Week 1 — May 5–11)"
+                  label="Week label (e.g. Week 1 — May 5–10)"
                   value={weekLabel}
                   onChange={e => setWeekLabel(e.target.value)}
-                  sx={{
-                    flex: 1,
-                    '& .MuiInputLabel-root': sx.label,
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: '#2e4a2e' },
-                    },
-                  }}
+                  sx={{ flex: 1, ...fieldSx }}
                 />
                 <Button
                   variant="outlined"
                   size="small"
                   onClick={handleUpdateLabel}
                   disabled={weekly.length === 0}
-                  sx={{ borderColor: '#4caf50', color: '#4caf50', whiteSpace: 'nowrap' }}
+                  sx={{
+                    borderColor: c.green + '88',
+                    color: c.green,
+                    textTransform: 'none',
+                    whiteSpace: 'nowrap',
+                    '&:hover': { borderColor: c.green },
+                  }}
                 >
                   Update Label
                 </Button>
@@ -218,18 +250,21 @@ const AdminDashboardPage: React.FC = () => {
               {/* Add match form */}
               <Box
                 sx={{
-                  display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center',
-                  p: 2, bgcolor: '#0d1f0d', borderRadius: 2, border: '1px solid #1e3a1e', mb: 2,
+                  display: 'flex',
+                  gap: 1.5,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  p: 2,
+                  bgcolor: c.bg,
+                  borderRadius: 2,
+                  border: `1px solid ${c.border}`,
+                  mb: 2,
                 }}
               >
-                <FormControl size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel sx={sx.label}>Home Player (P1)</InputLabel>
-                  <Select
-                    value={newP1} label="Home Player (P1)"
-                    onChange={e => setNewP1(e.target.value)}
-                    sx={{ color: 'white', '& fieldset': { borderColor: '#2e4a2e' }, '& .MuiSvgIcon-root': sx.label }}
-                  >
-                    <MenuItem value="">Select player</MenuItem>
+                <FormControl size="small" sx={{ minWidth: 170 }}>
+                  <InputLabel sx={{ color: c.textMuted }}>Home Player</InputLabel>
+                  <Select value={newP1} label="Home Player" onChange={e => setNewP1(e.target.value)} sx={selectSx}>
+                    <MenuItem value="">Select</MenuItem>
                     {players.map(p => (
                       <MenuItem key={p.id} value={p.id} disabled={p.id === newP2}>
                         {p.firstName} {p.lastName}
@@ -238,16 +273,12 @@ const AdminDashboardPage: React.FC = () => {
                   </Select>
                 </FormControl>
 
-                <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>vs</Typography>
+                <Typography sx={{ color: c.textMuted, fontWeight: 700, fontSize: '0.8rem' }}>vs</Typography>
 
-                <FormControl size="small" sx={{ minWidth: 180 }}>
-                  <InputLabel sx={sx.label}>Away Player (P2)</InputLabel>
-                  <Select
-                    value={newP2} label="Away Player (P2)"
-                    onChange={e => setNewP2(e.target.value)}
-                    sx={{ color: 'white', '& fieldset': { borderColor: '#2e4a2e' }, '& .MuiSvgIcon-root': sx.label }}
-                  >
-                    <MenuItem value="">Select player</MenuItem>
+                <FormControl size="small" sx={{ minWidth: 170 }}>
+                  <InputLabel sx={{ color: c.textMuted }}>Away Player</InputLabel>
+                  <Select value={newP2} label="Away Player" onChange={e => setNewP2(e.target.value)} sx={selectSx}>
+                    <MenuItem value="">Select</MenuItem>
                     {players.map(p => (
                       <MenuItem key={p.id} value={p.id} disabled={p.id === newP1}>
                         {p.firstName} {p.lastName}
@@ -261,62 +292,81 @@ const AdminDashboardPage: React.FC = () => {
                   startIcon={<AddIcon />}
                   onClick={handleAddWeeklyMatch}
                   disabled={addingMatch || !newP1 || !newP2}
-                  sx={{ bgcolor: '#c8ff00', color: '#0a1a0a', fontWeight: 700, '&:hover': { bgcolor: '#b0e000' } }}
+                  sx={{
+                    bgcolor: '#1B5E20',
+                    color: '#fff',
+                    textTransform: 'none',
+                    fontWeight: 700,
+                    '&:hover': { bgcolor: '#155216' },
+                    boxShadow: 'none',
+                  }}
                 >
                   Add to Schedule
                 </Button>
               </Box>
 
-              {/* Current schedule */}
+              {/* Current schedule list */}
               {weekly.length === 0 ? (
-                <Typography sx={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', py: 2 }}>
-                  No matches scheduled yet. Add matches above.
+                <Typography sx={{ color: c.textMuted, textAlign: 'center', py: 2, fontSize: '0.875rem' }}>
+                  No matches scheduled yet.
                 </Typography>
               ) : (
                 <>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
-                    {weekly.map(wm => (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2 }}>
+                    {weekly.map((wm, idx) => (
                       <Box
                         key={wm.id}
                         sx={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          p: 1.5, bgcolor: '#0d1a0d', borderRadius: 1.5,
-                          border: '1px solid', borderColor: wm.isCompleted ? '#2e7d32' : '#1e3a1e',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: 1.5,
+                          bgcolor: c.bg,
+                          border: `1px solid ${wm.isCompleted ? c.green + '44' : c.border}`,
                         }}
                       >
-                        <Box>
-                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)' }}>
-                            <Chip label="H" size="small" sx={{ height: 18, bgcolor: '#1a3a1a', color: '#c8ff00', mr: 0.75 }} />
-                            {wm.player1Id.firstName} {wm.player1Id.lastName}
-                            <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 8px' }}>vs</span>
-                            <Chip label="A" size="small" sx={{ height: 18, bgcolor: '#1a1a3a', color: '#82b1ff', mr: 0.75 }} />
-                            {wm.player2Id.firstName} {wm.player2Id.lastName}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography sx={{ fontSize: '0.7rem', color: c.textMuted, minWidth: 20 }}>
+                            {idx + 1}.
+                          </Typography>
+                          <PlayerAvatar firstName={wm.player1Id.firstName} lastName={wm.player1Id.lastName} size={22} />
+                          <Typography sx={{ fontSize: '0.85rem', color: c.text, fontWeight: 500 }}>
+                            {wm.player1Id.firstName}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: c.textMuted }}>vs</Typography>
+                          <PlayerAvatar firstName={wm.player2Id.firstName} lastName={wm.player2Id.lastName} size={22} />
+                          <Typography sx={{ fontSize: '0.85rem', color: c.text, fontWeight: 500 }}>
+                            {wm.player2Id.firstName}
                           </Typography>
                           {wm.isCompleted && wm.completedMatch && (
-                            <Typography variant="caption" sx={{ color: '#4caf50', ml: 0.5 }}>
-                              ✓ Played: {
-                                wm.completedMatch.player1Id.id === wm.player1Id.id
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+                              <CheckCircleOutlineIcon sx={{ color: c.green, fontSize: 14 }} />
+                              <Typography sx={{ fontSize: '0.75rem', color: c.green }}>
+                                {wm.completedMatch.player1Id.id === wm.player1Id.id
                                   ? `${wm.completedMatch.score1}–${wm.completedMatch.score2}`
-                                  : `${wm.completedMatch.score2}–${wm.completedMatch.score1}`
-                              }
-                            </Typography>
+                                  : `${wm.completedMatch.score2}–${wm.completedMatch.score1}`}
+                              </Typography>
+                            </Box>
                           )}
                         </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {wm.isCompleted && <Chip label="Done" size="small" color="success" />}
-                          <IconButton
-                            size="small" color="error"
-                            onClick={() => handleDeleteWeeklyMatch(wm.id)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteWeeklyMatch(wm.id)}
+                          sx={{ color: c.textSubtle, '&:hover': { color: c.lossColor } }}
+                        >
+                          <DeleteOutlineIcon fontSize="small" />
+                        </IconButton>
                       </Box>
                     ))}
                   </Box>
                   <Button
-                    variant="outlined" color="error" size="small"
+                    variant="outlined"
+                    size="small"
+                    color="error"
                     onClick={handleClearWeekly}
+                    sx={{ textTransform: 'none', fontSize: '0.8rem' }}
                   >
                     Clear All Weekly Matches
                   </Button>
@@ -325,81 +375,105 @@ const AdminDashboardPage: React.FC = () => {
             </Box>
 
             {/* ── Match Log ── */}
-            <Box sx={sx.card}>
-              <Typography variant="h6" sx={{ color: '#c8ff00', fontWeight: 700, mb: 2 }}>
+            <Box sx={cardSx}>
+              <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text, mb: 2 }}>
                 Match Submission Log ({matchLogs.length})
               </Typography>
-              <TableContainer component={Paper} sx={{ bgcolor: '#0d1a0d', border: '1px solid #1e3a1e' }}>
+              <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ bgcolor: '#0d2e0d' }}>
+                    <TableRow sx={{ bgcolor: c.bg }}>
                       {['#', 'Home', 'Score', 'Away', 'Winner', 'Date', 'IP'].map(h => (
-                        <TableCell key={h} sx={{ color: '#c8ff00', fontWeight: 700, borderColor: '#1e3a1e', py: 1 }}>{h}</TableCell>
+                        <TableCell key={h} sx={{ ...cellSx, fontWeight: 700, color: c.textMuted, fontSize: '0.68rem', letterSpacing: '0.06em' }}>
+                          {h.toUpperCase()}
+                        </TableCell>
                       ))}
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {matchLogs.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} align="center" sx={{ color: 'rgba(255,255,255,0.3)', py: 3, borderColor: '#1e3a1e' }}>
+                        <TableCell colSpan={7} align="center" sx={{ color: c.textMuted, py: 3, borderColor: c.border }}>
                           No matches recorded yet.
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      matchLogs.map((log, i) => {
-                        const p1 = `${log.player1Id?.firstName || '?'} ${log.player1Id?.lastName || ''}`.trim();
-                        const p2 = `${log.player2Id?.firstName || '?'} ${log.player2Id?.lastName || ''}`.trim();
-                        const winner = log.score1 > log.score2 ? p1 : p2;
-                        return (
-                          <TableRow key={log.id} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
-                            <TableCell sx={{ color: 'rgba(255,255,255,0.3)', borderColor: '#1a2e1a' }}>{matchLogs.length - i}</TableCell>
-                            <TableCell sx={{ color: 'rgba(255,255,255,0.8)', borderColor: '#1a2e1a' }}>{p1}</TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#c8ff00', borderColor: '#1a2e1a' }}>
-                              {log.score1}–{log.score2}
-                            </TableCell>
-                            <TableCell sx={{ color: 'rgba(255,255,255,0.8)', borderColor: '#1a2e1a' }}>{p2}</TableCell>
-                            <TableCell sx={{ borderColor: '#1a2e1a' }}>
-                              <Chip label={winner} size="small" sx={{ bgcolor: 'rgba(76,175,80,0.2)', color: '#4caf50', fontSize: '0.65rem' }} />
-                            </TableCell>
-                            <TableCell sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', borderColor: '#1a2e1a' }}>
-                              {new Date(log.date).toLocaleString('en-CA')}
-                            </TableCell>
-                            <TableCell sx={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.25)', fontSize: '0.65rem', borderColor: '#1a2e1a' }}>
-                              {log.ipAddress}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
+                    ) : matchLogs.map((log, i) => {
+                      const p1 = `${log.player1Id?.firstName || '?'} ${log.player1Id?.lastName || ''}`.trim();
+                      const p2 = `${log.player2Id?.firstName || '?'} ${log.player2Id?.lastName || ''}`.trim();
+                      const winner = log.score1 > log.score2 ? p1 : p2;
+                      return (
+                        <TableRow key={log.id} sx={{ '&:hover': { bgcolor: c.border } }}>
+                          <TableCell sx={{ ...cellSx, color: c.textSubtle }}>{matchLogs.length - i}</TableCell>
+                          <TableCell sx={cellSx}>{p1}</TableCell>
+                          <TableCell sx={{ ...cellSx, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: c.green }}>
+                            {log.score1}–{log.score2}
+                          </TableCell>
+                          <TableCell sx={cellSx}>{p2}</TableCell>
+                          <TableCell sx={{ ...cellSx, color: c.winColor, fontWeight: 600 }}>{winner.split(' ')[0]}</TableCell>
+                          <TableCell sx={{ ...cellSx, color: c.textMuted, fontSize: '0.72rem' }}>
+                            {new Date(log.date).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </TableCell>
+                          <TableCell sx={{ ...cellSx, color: c.textSubtle, fontSize: '0.68rem', fontFamily: 'monospace' }}>
+                            {log.ipAddress}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </Box>
+            </Box>
+
+            {/* ── Seed Data ── */}
+            <Box sx={{ ...cardSx, border: `1px solid ${c.green}44` }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>Quick Seed</Typography>
+              </Box>
+              <Typography sx={{ color: c.textMuted, fontSize: '0.875rem', mb: 2 }}>
+                Adds all 9 players + Week 1 fixtures in one click. Skips players that already exist. Replaces weekly schedule.
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={handleSeedWeek1}
+                disabled={seeding}
+                sx={{
+                  bgcolor: '#1B5E20',
+                  color: '#fff',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  '&:hover': { bgcolor: '#155216' },
+                  boxShadow: 'none',
+                }}
+              >
+                {seeding ? 'Seeding…' : '🌱 Seed Week 1 Players + Fixtures'}
+              </Button>
             </Box>
 
             {/* ── Danger Zone ── */}
             <Box
               sx={{
-                ...sx.card,
-                border: '1px solid rgba(239,83,80,0.4)',
-                bgcolor: 'rgba(239,83,80,0.05)',
+                ...cardSx,
+                border: `1px solid ${c.lossColor}44`,
+                bgcolor: c.lossColor + '08',
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <WarningAmberIcon sx={{ color: '#ef5350' }} />
-                <Typography variant="h6" sx={{ color: '#ef5350', fontWeight: 700 }}>Danger Zone</Typography>
+                <WarningAmberIcon sx={{ color: c.lossColor, fontSize: 20 }} />
+                <Typography sx={{ fontWeight: 700, color: c.lossColor, fontSize: '1rem' }}>Danger Zone</Typography>
               </Box>
-              <Divider sx={{ borderColor: 'rgba(239,83,80,0.2)', mb: 2 }} />
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
-                Permanently delete all players, match records, weekly schedule, and rate limit data. This cannot be undone.
+              <Divider sx={{ borderColor: c.lossColor + '33', mb: 2 }} />
+              <Typography sx={{ color: c.textMuted, fontSize: '0.875rem', mb: 2 }}>
+                Permanently delete all players, match records, weekly schedule, and rate limit data. Cannot be undone.
               </Typography>
               <Button
                 variant="outlined"
                 color="error"
+                startIcon={<WarningAmberIcon />}
                 onClick={handleClearAllData}
                 disabled={clearingAll}
-                startIcon={<WarningAmberIcon />}
+                sx={{ textTransform: 'none' }}
               >
-                {clearingAll ? 'Clearing...' : 'Clear All Data'}
+                {clearingAll ? 'Clearing…' : 'Clear All Data'}
               </Button>
             </Box>
           </>

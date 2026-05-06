@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../apiConfig';
 import {
   Box, TextField, Button, Typography, FormControl, InputLabel,
-  Select, MenuItem, Card, CardContent, Grid, CircularProgress,
-  Alert, Chip,
+  Select, MenuItem, CircularProgress, Alert,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
-import InfoIcon from '@mui/icons-material/Info';
+import { useAppTheme } from '../context/ThemeContext';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface Player { id: string; firstName: string; lastName: string; }
 
@@ -17,6 +18,8 @@ const VALID_SCORES = [
 ];
 
 const AddMatchPage: React.FC = () => {
+  const { c } = useAppTheme();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const prePlayer1 = searchParams.get('player1') || '';
   const prePlayer2 = searchParams.get('player2') || '';
@@ -35,7 +38,6 @@ const AddMatchPage: React.FC = () => {
     api.get<Player[]>('/players')
       .then(r => {
         setPlayers(r.data);
-        // Set pre-selected players from URL params (validate they exist)
         if (prePlayer1 && r.data.some(p => p.id === prePlayer1)) setPlayer1(prePlayer1);
         if (prePlayer2 && r.data.some(p => p.id === prePlayer2)) setPlayer2(prePlayer2);
       })
@@ -51,25 +53,21 @@ const AddMatchPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
+    setError(null); setSuccess(null);
     if (!player1 || !player2) { setError('Please select both players.'); return; }
     if (player1 === player2) { setError('Please select two different players.'); return; }
     const s1 = parseInt(score1, 10);
     const s2 = parseInt(score2, 10);
     if (isNaN(s1) || isNaN(s2) || !validateScore(s1, s2)) {
-      setError('Invalid score: winner must have 6 games, loser 0–5.'); return;
+      setError('Invalid score: winner must have 6, loser 0–5.'); return;
     }
-
     setSubmitting(true);
     try {
       await api.post('/matches', { player1Id: player1, player2Id: player2, score1: s1, score2: s2 });
       const p1 = players.find(p => p.id === player1);
       const p2 = players.find(p => p.id === player2);
-      setSuccess(`✅ Match recorded: ${p1?.firstName} ${p1?.lastName} ${s1}–${s2} ${p2?.firstName} ${p2?.lastName}`);
-      if (!isPreSelected) {
-        setPlayer1(''); setPlayer2('');
-      }
+      setSuccess(`Match recorded: ${p1?.firstName} ${s1}–${s2} ${p2?.firstName}`);
+      if (!isPreSelected) { setPlayer1(''); setPlayer2(''); }
       setScore1('6'); setScore2('0');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to submit. Please try again.');
@@ -78,203 +76,246 @@ const AddMatchPage: React.FC = () => {
     }
   };
 
-  const winner = (() => {
-    const s1 = parseInt(score1, 10);
-    const s2 = parseInt(score2, 10);
-    if (!player1 || !player2 || isNaN(s1) || isNaN(s2)) return null;
-    const p1 = players.find(p => p.id === player1);
-    const p2 = players.find(p => p.id === player2);
-    if (!p1 || !p2) return null;
-    if (s1 === 6) return `${p1.firstName} ${p1.lastName}`;
-    if (s2 === 6) return `${p2.firstName} ${p2.lastName}`;
-    return null;
-  })();
+  const p1Obj = players.find(p => p.id === player1);
+  const p2Obj = players.find(p => p.id === player2);
+  const s1n = parseInt(score1, 10);
+  const s2n = parseInt(score2, 10);
+  const winner = p1Obj && p2Obj && !isNaN(s1n) && !isNaN(s2n)
+    ? (s1n === 6 ? p1Obj : s2n === 6 ? p2Obj : null)
+    : null;
+
+  const selectSx = {
+    color: c.text,
+    bgcolor: c.surface,
+    '& .MuiOutlinedInput-notchedOutline': { borderColor: c.border },
+    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: c.borderStrong },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: c.green },
+    '& .MuiSvgIcon-root': { color: c.textMuted },
+  };
+
+  const fieldSx = {
+    '& .MuiInputLabel-root': { color: c.textMuted },
+    '& .MuiInputLabel-root.Mui-focused': { color: c.green },
+    '& .MuiOutlinedInput-root': {
+      color: c.text,
+      bgcolor: c.surface,
+      '& fieldset': { borderColor: c.border },
+      '&:hover fieldset': { borderColor: c.borderStrong },
+      '&.Mui-focused fieldset': { borderColor: c.green },
+    },
+  };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh', bgcolor: '#0a0f0a',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center', pt: 4, px: 2,
-      }}
-    >
-      <Box sx={{ width: '100%', maxWidth: 560 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-          <SportsTennisIcon sx={{ color: '#c8ff00', fontSize: 28 }} />
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#c8ff00' }}>
-            Record Match Score
-          </Typography>
+    <Box sx={{ minHeight: '100vh', bgcolor: c.bg, transition: 'background-color 0.2s', pt: 3, px: 2, pb: 6 }}>
+      <Box sx={{ maxWidth: 480, mx: 'auto' }}>
+        {/* Back button */}
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate(-1)}
+          sx={{ color: c.textMuted, textTransform: 'none', mb: 2, pl: 0, '&:hover': { color: c.green, bgcolor: 'transparent' } }}
+        >
+          Back
+        </Button>
+
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <SportsTennisIcon sx={{ color: c.green, fontSize: 22 }} />
+          <Typography sx={{ fontWeight: 700, fontSize: '1.3rem', color: c.text }}>Record Score</Typography>
         </Box>
 
         {isPreSelected && (
-          <Alert
-            icon={<InfoIcon />}
-            severity="info"
-            sx={{ mb: 2, bgcolor: 'rgba(200,255,0,0.08)', border: '1px solid rgba(200,255,0,0.2)', color: '#c8ff00' }}
+          <Box
+            sx={{
+              bgcolor: c.greenMuted,
+              border: `1px solid ${c.green}33`,
+              borderRadius: 2,
+              px: 2,
+              py: 1.25,
+              mb: 2.5,
+            }}
           >
-            Players pre-selected from this week's schedule
-          </Alert>
+            <Typography sx={{ color: c.green, fontSize: '0.825rem', fontWeight: 600 }}>
+              Players pre-selected from this week's schedule
+            </Typography>
+          </Box>
         )}
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
-            <CircularProgress sx={{ color: '#c8ff00' }} />
+            <CircularProgress sx={{ color: c.green }} size={32} />
           </Box>
         ) : (
-          <Card sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', borderRadius: 3 }}>
-            <CardContent sx={{ p: 4 }}>
-              {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-              {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
+          <Box sx={{ bgcolor: c.cardBg, borderRadius: 3, border: `1px solid ${c.border}`, p: 3 }}>
+            {error && <Alert severity="error" sx={{ mb: 2.5, fontSize: '0.8rem' }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 2.5, fontSize: '0.8rem' }}>{success}</Alert>}
 
-              <form onSubmit={handleSubmit}>
-                {/* Player 1 (Home) */}
-                <FormControl fullWidth sx={{ mb: 2.5 }}>
-                  <InputLabel sx={{ color: 'rgba(255,255,255,0.5)' }}>Player 1 (Home)</InputLabel>
-                  <Select
-                    value={player1}
-                    label="Player 1 (Home)"
-                    onChange={e => { setPlayer1(e.target.value); setError(null); }}
-                    required
-                    sx={{
-                      color: 'white',
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#2e4a2e' },
-                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4caf50' },
-                      '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' },
-                    }}
-                  >
-                    <MenuItem value="">Select home player</MenuItem>
-                    {players.map(p => (
-                      <MenuItem key={p.id} value={p.id} disabled={p.id === player2}>
+            <form onSubmit={handleSubmit}>
+              {/* Player 1 */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel sx={{ color: c.textMuted, '&.Mui-focused': { color: c.green } }}>
+                  Home Player
+                </InputLabel>
+                <Select value={player1} label="Home Player" onChange={e => { setPlayer1(e.target.value); setError(null); }} required sx={selectSx}>
+                  <MenuItem value="">Select player</MenuItem>
+                  {players.map(p => (
+                    <MenuItem key={p.id} value={p.id} disabled={p.id === player2}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PlayerAvatar firstName={p.firstName} lastName={p.lastName} size={22} />
                         {p.firstName} {p.lastName}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-                {/* Player 2 (Away) */}
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <InputLabel sx={{ color: 'rgba(255,255,255,0.5)' }}>Player 2 (Away)</InputLabel>
-                  <Select
-                    value={player2}
-                    label="Player 2 (Away)"
-                    onChange={e => { setPlayer2(e.target.value); setError(null); }}
-                    required
-                    sx={{
-                      color: 'white',
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#2e4a2e' },
-                      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#4caf50' },
-                      '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' },
-                    }}
-                  >
-                    <MenuItem value="">Select away player</MenuItem>
-                    {players.map(p => (
-                      <MenuItem key={p.id} value={p.id} disabled={p.id === player1}>
+              {/* Player 2 */}
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel sx={{ color: c.textMuted, '&.Mui-focused': { color: c.green } }}>
+                  Away Player
+                </InputLabel>
+                <Select value={player2} label="Away Player" onChange={e => { setPlayer2(e.target.value); setError(null); }} required sx={selectSx}>
+                  <MenuItem value="">Select player</MenuItem>
+                  {players.map(p => (
+                    <MenuItem key={p.id} value={p.id} disabled={p.id === player1}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PlayerAvatar firstName={p.firstName} lastName={p.lastName} size={22} />
                         {p.firstName} {p.lastName}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-                {/* Score */}
-                <Typography variant="subtitle2" sx={{ color: 'rgba(255,255,255,0.6)', mb: 1 }}>
-                  Final Score (winner must have 6)
-                </Typography>
-                <Grid container spacing={2} alignItems="center" sx={{ mb: 1.5 }}>
-                  <Grid item xs={5}>
-                    <TextField
-                      fullWidth label="P1 Games" type="number" value={score1}
-                      onChange={e => { setScore1(e.target.value); setError(null); }}
-                      inputProps={{ min: 0, max: 6 }}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
-                        '& .MuiOutlinedInput-root': {
-                          color: 'white',
-                          '& fieldset': { borderColor: '#2e4a2e' },
-                          '&:hover fieldset': { borderColor: '#4caf50' },
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={2} sx={{ textAlign: 'center' }}>
-                    <Typography variant="h5" sx={{ color: 'rgba(255,255,255,0.3)', fontWeight: 700 }}>—</Typography>
-                  </Grid>
-                  <Grid item xs={5}>
-                    <TextField
-                      fullWidth label="P2 Games" type="number" value={score2}
-                      onChange={e => { setScore2(e.target.value); setError(null); }}
-                      inputProps={{ min: 0, max: 6 }}
-                      required
-                      sx={{
-                        '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
-                        '& .MuiOutlinedInput-root': {
-                          color: 'white',
-                          '& fieldset': { borderColor: '#2e4a2e' },
-                          '&:hover fieldset': { borderColor: '#4caf50' },
-                        },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-
-                {/* Quick chips */}
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', mb: 0.75 }}>
-                    Quick select score:
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                    {VALID_SCORES.map(([s1, s2]) => {
-                      const active = String(score1) === String(s1) && String(score2) === String(s2);
-                      return (
-                        <Chip
-                          key={`${s1}-${s2}`}
-                          label={`${s1}–${s2}`}
-                          size="small"
-                          onClick={() => { setScore1(String(s1)); setScore2(String(s2)); setError(null); }}
-                          sx={{
-                            cursor: 'pointer',
-                            bgcolor: active ? '#c8ff00' : 'rgba(200,255,0,0.08)',
-                            color: active ? '#0a1a0a' : 'rgba(200,255,0,0.7)',
-                            border: '1px solid',
-                            borderColor: active ? '#c8ff00' : 'rgba(200,255,0,0.2)',
-                            fontWeight: active ? 700 : 400,
-                            '&:hover': { bgcolor: active ? '#b0e000' : 'rgba(200,255,0,0.15)' },
-                          }}
-                        />
-                      );
-                    })}
-                  </Box>
-                </Box>
-
-                {/* Winner preview */}
-                {winner && (
-                  <Box
-                    sx={{
-                      mb: 3, p: 1.5, borderRadius: 2,
-                      bgcolor: 'rgba(200,255,0,0.08)', border: '1px solid rgba(200,255,0,0.25)',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <Typography sx={{ color: '#c8ff00', fontWeight: 700 }}>
-                      🏆 {winner} wins
-                    </Typography>
-                  </Box>
-                )}
-
-                <Button
-                  type="submit" variant="contained" fullWidth size="large"
-                  disabled={submitting}
+              {/* Score preview bar */}
+              {p1Obj && p2Obj && (
+                <Box
                   sx={{
-                    bgcolor: '#c8ff00', color: '#0a1a0a', fontWeight: 800,
-                    fontSize: '1rem', py: 1.5,
-                    '&:hover': { bgcolor: '#b0e000' },
-                    '&:disabled': { bgcolor: 'rgba(200,255,0,0.3)' },
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 2,
+                    bgcolor: c.border,
+                    borderRadius: 2,
+                    py: 1.5,
+                    mb: 2.5,
                   }}
                 >
-                  {submitting ? 'Saving...' : 'Record Match'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <PlayerAvatar firstName={p1Obj.firstName} lastName={p1Obj.lastName} size={24} />
+                    <Typography sx={{ fontWeight: 600, color: c.text, fontSize: '0.875rem' }}>
+                      {p1Obj.firstName}
+                    </Typography>
+                  </Box>
+                  <Typography sx={{ fontWeight: 800, color: c.text, fontSize: '1.2rem', fontVariantNumeric: 'tabular-nums' }}>
+                    {score1} – {score2}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                    <Typography sx={{ fontWeight: 600, color: c.text, fontSize: '0.875rem' }}>
+                      {p2Obj.firstName}
+                    </Typography>
+                    <PlayerAvatar firstName={p2Obj.firstName} lastName={p2Obj.lastName} size={24} />
+                  </Box>
+                </Box>
+              )}
+
+              {/* Score inputs */}
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Home games"
+                  type="number"
+                  value={score1}
+                  onChange={e => { setScore1(e.target.value); setError(null); }}
+                  inputProps={{ min: 0, max: 6 }}
+                  required
+                  sx={fieldSx}
+                />
+                <Typography sx={{ color: c.textMuted, fontWeight: 700, fontSize: '1.25rem' }}>–</Typography>
+                <TextField
+                  fullWidth
+                  label="Away games"
+                  type="number"
+                  value={score2}
+                  onChange={e => { setScore2(e.target.value); setError(null); }}
+                  inputProps={{ min: 0, max: 6 }}
+                  required
+                  sx={fieldSx}
+                />
+              </Box>
+
+              {/* Quick score chips */}
+              <Typography sx={{ fontSize: '0.72rem', color: c.textMuted, mb: 0.75, fontWeight: 600, letterSpacing: '0.05em' }}>
+                QUICK SELECT
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2.5 }}>
+                {VALID_SCORES.map(([s1, s2]) => {
+                  const active = String(score1) === String(s1) && String(score2) === String(s2);
+                  return (
+                    <Box
+                      key={`${s1}-${s2}`}
+                      onClick={() => { setScore1(String(s1)); setScore2(String(s2)); setError(null); }}
+                      sx={{
+                        px: 1.25,
+                        py: 0.4,
+                        borderRadius: 50,
+                        border: `1px solid ${active ? c.green : c.borderStrong}`,
+                        bgcolor: active ? c.green : 'transparent',
+                        color: active ? '#fff' : c.textMuted,
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: active ? 700 : 400,
+                        userSelect: 'none',
+                        transition: 'all 0.1s',
+                        '&:hover': { borderColor: c.green, color: active ? '#fff' : c.green },
+                      }}
+                    >
+                      {s1}–{s2}
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Winner callout */}
+              {winner && (
+                <Box
+                  sx={{
+                    bgcolor: c.greenMuted,
+                    border: `1px solid ${c.green}44`,
+                    borderRadius: 2,
+                    px: 2,
+                    py: 1.25,
+                    mb: 2.5,
+                    textAlign: 'center',
+                  }}
+                >
+                  <Typography sx={{ color: c.green, fontWeight: 700, fontSize: '0.9rem' }}>
+                    🏆 {winner.firstName} {winner.lastName} wins
+                  </Typography>
+                </Box>
+              )}
+
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={submitting}
+                sx={{
+                  bgcolor: '#1B5E20',
+                  color: '#fff',
+                  fontWeight: 700,
+                  py: 1.4,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: '#155216' },
+                  '&:disabled': { bgcolor: c.borderStrong, color: c.textMuted },
+                  boxShadow: 'none',
+                }}
+              >
+                {submitting ? 'Saving…' : 'Record Match'}
+              </Button>
+            </form>
+          </Box>
         )}
       </Box>
     </Box>

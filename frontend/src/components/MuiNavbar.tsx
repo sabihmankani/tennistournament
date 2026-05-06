@@ -39,15 +39,28 @@ const MuiNavbar: React.FC<MuiNavbarProps> = () => {
       }}
     >
       {/* Agency banner */}
-      <Box sx={{ py: 0.4, textAlign: 'center', borderBottom: `1px solid ${c.border}` }}>
-        <Typography sx={{ color: c.textMuted, fontSize: '0.62rem', letterSpacing: '0.05em' }}>
+      <Box
+        sx={{
+          py: 1,
+          px: 2,
+          textAlign: 'center',
+          borderBottom: `1px solid ${c.border}`,
+          bgcolor: c.surface,
+        }}
+      >
+        <Typography sx={{ color: c.textMuted, fontSize: '0.75rem', letterSpacing: '0.04em' }}>
           Designed and Developed by{' '}
           <Box
             component="a"
             href="https://magency.co"
             target="_blank"
             rel="noopener noreferrer"
-            sx={{ color: c.green, textDecoration: 'none', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
+            sx={{
+              color: c.green,
+              textDecoration: 'none',
+              fontWeight: 700,
+              '&:hover': { textDecoration: 'underline' },
+            }}
           >
             Magency Consultants
           </Box>
