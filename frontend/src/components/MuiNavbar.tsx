@@ -24,12 +24,12 @@ const publicNav = [
   { name: 'Home', path: '/' },
   { name: 'Submit Score', path: '/add-match' },
   { name: 'Results', path: '/matches' },
-  { name: 'Leaderboard', path: '/rankings' },
+  { name: 'Standings', path: '/rankings' },
 ];
 
 const adminNav = [
   { name: 'Players', path: '/players' },
-  { name: 'Admin Dashboard', path: '/admin/dashboard' },
+  { name: 'Admin', path: '/admin/dashboard' },
 ];
 
 const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusChange }) => {
@@ -44,51 +44,21 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
   };
 
   const isActive = (path: string) => location.pathname === path;
-
   const navItems = isAdminLoggedIn ? [...publicNav, ...adminNav] : publicNav;
-
-  const DrawerContent = () => (
-    <Box sx={{ width: 280 }} role="presentation" onClick={() => setDrawerOpen(false)}>
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <SportsTennisIcon color="success" />
-        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Soul Brothers Pakistan</Typography>
-      </Box>
-      <Divider />
-      <List>
-        {navItems.map(item => (
-          <ListItem key={item.name} disablePadding>
-            <ListItemButton component={Link} to={item.path} selected={isActive(item.path)}>
-              <ListItemText primary={item.name} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-        <Divider sx={{ my: 1 }} />
-        <ListItem disablePadding>
-          {isAdminLoggedIn ? (
-            <ListItemButton onClick={handleLogout}>
-              <ListItemText primary="Logout" primaryTypographyProps={{ color: 'error' }} />
-            </ListItemButton>
-          ) : (
-            <ListItemButton component={Link} to="/admin">
-              <ListItemText primary="Admin Login" primaryTypographyProps={{ color: 'text.secondary' }} />
-            </ListItemButton>
-          )}
-        </ListItem>
-      </List>
-    </Box>
-  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
         position="sticky"
-        color="transparent"
-        elevation={0}
-        sx={{ backdropFilter: 'blur(20px)', borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'rgba(255,255,255,0.9)' }}
+        sx={{
+          bgcolor: '#0d2e0d',
+          borderBottom: '1px solid #1e4a1e',
+          boxShadow: 'none',
+        }}
       >
-        <Toolbar>
+        <Toolbar sx={{ minHeight: '56px !important' }}>
           <IconButton
-            size="large"
+            size="medium"
             edge="start"
             color="inherit"
             aria-label="menu"
@@ -100,10 +70,15 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
 
           {/* Logo */}
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none', mr: 3 }}>
-            <SportsTennisIcon color="success" />
-            <Typography variant="h6" sx={{ fontWeight: 800, color: 'success.dark', display: { xs: 'none', sm: 'block' } }}>
-              Soul Brothers Pakistan
-            </Typography>
+            <SportsTennisIcon sx={{ color: '#c8ff00', fontSize: 22 }} />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 900, color: '#c8ff00', lineHeight: 1.1, fontSize: '0.8rem', letterSpacing: 1 }}>
+                SBP TENNIS LEAGUE
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(200,255,0,0.5)', lineHeight: 1, fontSize: '0.6rem', letterSpacing: 2 }}>
+                2026
+              </Typography>
+            </Box>
           </Box>
 
           {/* Desktop nav */}
@@ -113,36 +88,49 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
                 key={item.name}
                 component={Link}
                 to={item.path}
-                variant={isActive(item.path) ? 'contained' : 'text'}
-                color={isActive(item.path) ? 'success' : 'inherit'}
                 size="small"
-                sx={{ fontWeight: isActive(item.path) ? 700 : 400 }}
+                sx={{
+                  color: isActive(item.path) ? '#c8ff00' : 'rgba(255,255,255,0.7)',
+                  fontWeight: isActive(item.path) ? 700 : 400,
+                  bgcolor: isActive(item.path) ? 'rgba(200,255,0,0.12)' : 'transparent',
+                  borderRadius: 1,
+                  px: 1.5,
+                  '&:hover': { bgcolor: 'rgba(200,255,0,0.08)', color: '#c8ff00' },
+                }}
               >
                 {item.name}
               </Button>
             ))}
           </Box>
 
-          {/* Admin section */}
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 0.5, alignItems: 'center' }}>
             {isAdminLoggedIn && adminNav.map(item => (
               <Button
                 key={item.name}
                 component={Link}
                 to={item.path}
-                variant="text"
-                color="inherit"
                 size="small"
+                sx={{ color: 'rgba(255,255,255,0.5)', '&:hover': { color: '#c8ff00' } }}
               >
                 {item.name}
               </Button>
             ))}
             {isAdminLoggedIn ? (
-              <Button variant="outlined" color="error" size="small" onClick={handleLogout} sx={{ ml: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleLogout}
+                sx={{ borderColor: 'rgba(239,83,80,0.5)', color: '#ef5350', ml: 1, '&:hover': { borderColor: '#ef5350' } }}
+              >
                 Logout
               </Button>
             ) : (
-              <Button variant="text" color="inherit" size="small" component={Link} to="/admin" sx={{ ml: 1, opacity: 0.5 }}>
+              <Button
+                size="small"
+                component={Link}
+                to="/admin"
+                sx={{ color: 'rgba(255,255,255,0.25)', ml: 1, fontSize: '0.7rem', '&:hover': { color: 'rgba(255,255,255,0.6)' } }}
+              >
                 Admin
               </Button>
             )}
@@ -151,7 +139,48 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
       </AppBar>
 
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <DrawerContent />
+        <Box
+          sx={{ width: 260, bgcolor: '#0a0f0a', height: '100%' }}
+          role="presentation"
+          onClick={() => setDrawerOpen(false)}
+        >
+          <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid #1e3a1e' }}>
+            <SportsTennisIcon sx={{ color: '#c8ff00' }} />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 800, color: '#c8ff00' }}>SBP Tennis League</Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)' }}>Soul Brothers Canada 2026</Typography>
+            </Box>
+          </Box>
+          <List>
+            {navItems.map(item => (
+              <ListItem key={item.name} disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  selected={isActive(item.path)}
+                  sx={{
+                    color: isActive(item.path) ? '#c8ff00' : 'rgba(255,255,255,0.7)',
+                    '&.Mui-selected': { bgcolor: 'rgba(200,255,0,0.1)' },
+                  }}
+                >
+                  <ListItemText primary={item.name} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            <Divider sx={{ borderColor: '#1e3a1e', my: 1 }} />
+            <ListItem disablePadding>
+              {isAdminLoggedIn ? (
+                <ListItemButton onClick={handleLogout} sx={{ color: '#ef5350' }}>
+                  <ListItemText primary="Logout" />
+                </ListItemButton>
+              ) : (
+                <ListItemButton component={Link} to="/admin" sx={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <ListItemText primary="Admin Login" />
+                </ListItemButton>
+              )}
+            </ListItem>
+          </List>
+        </Box>
       </Drawer>
     </Box>
   );

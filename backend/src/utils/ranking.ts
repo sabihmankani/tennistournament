@@ -2,13 +2,13 @@ import { Player, Match, IPlayer } from '../models';
 
 export interface PlayerRanking {
   player: IPlayer;
+  points: number;       // wins × 3
   wins: number;
   losses: number;
-  winPct: number;
+  matchesPlayed: number;
   gamesWon: number;
   gamesLost: number;
-  gamesRatio: number;
-  matchesPlayed: number;
+  gameDiff: number;     // gamesWon - gamesLost
 }
 
 export const calculateOverallRanking = async (): Promise<PlayerRanking[]> => {
@@ -16,7 +16,6 @@ export const calculateOverallRanking = async (): Promise<PlayerRanking[]> => {
   const matches = await Match.find();
 
   const stats: Record<string, { wins: number; losses: number; gamesWon: number; gamesLost: number }> = {};
-
   players.forEach(p => {
     stats[p._id.toString()] = { wins: 0, losses: 0, gamesWon: 0, gamesLost: 0 };
   });
@@ -41,22 +40,22 @@ export const calculateOverallRanking = async (): Promise<PlayerRanking[]> => {
 
   const rankings: PlayerRanking[] = players.map(player => {
     const s = stats[player._id.toString()];
-    const played = s.wins + s.losses;
-    const totalGames = s.gamesWon + s.gamesLost;
     return {
       player,
+      points: s.wins * 3,
       wins: s.wins,
       losses: s.losses,
-      winPct: played > 0 ? s.wins / played : 0,
+      matchesPlayed: s.wins + s.losses,
       gamesWon: s.gamesWon,
       gamesLost: s.gamesLost,
-      gamesRatio: totalGames > 0 ? s.gamesWon / totalGames : 0,
-      matchesPlayed: played,
+      gameDiff: s.gamesWon - s.gamesLost,
     };
   });
 
+  // Sort: 1) points DESC  2) gameDiff DESC  3) gamesWon DESC
   return rankings.sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins;
-    return b.gamesRatio - a.gamesRatio;
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.gameDiff !== a.gameDiff) return b.gameDiff - a.gameDiff;
+    return b.gamesWon - a.gamesWon;
   });
 };
