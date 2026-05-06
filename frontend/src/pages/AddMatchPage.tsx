@@ -14,7 +14,9 @@ import {
   Grid,
   CircularProgress,
   Alert,
+  Chip,
 } from '@mui/material';
+import SportsTennisIcon from '@mui/icons-material/SportsTennis';
 
 interface Player {
   id: string;
@@ -22,264 +24,219 @@ interface Player {
   lastName: string;
 }
 
-interface Tournament {
-  id: string;
-  name: string;
-  isGroupBased: boolean;
-  groupIds: string[];
-}
-
-interface Group {
-  id: string;
-  name: string;
-  playerIds: string[];
-}
+const VALID_SCORES = [
+  { score1: 6, score2: 0 }, { score1: 6, score2: 1 }, { score1: 6, score2: 2 },
+  { score1: 6, score2: 3 }, { score1: 6, score2: 4 }, { score1: 6, score2: 5 },
+  { score1: 0, score2: 6 }, { score1: 1, score2: 6 }, { score1: 2, score2: 6 },
+  { score1: 3, score2: 6 }, { score1: 4, score2: 6 }, { score1: 5, score2: 6 },
+];
 
 const AddMatchPage: React.FC = () => {
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [selectedTournament, setSelectedTournament] = useState<string>('');
-  const [selectedGroup, setSelectedGroup] = useState<string>('');
-  const [player1, setPlayer1] = useState<string>('');
-  const [player2, setPlayer2] = useState<string>('');
-  const [score1, setScore1] = useState<number>(0);
-  const [score2, setScore2] = useState<number>(0);
-  const [location, setLocation] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [player1, setPlayer1] = useState('');
+  const [player2, setPlayer2] = useState('');
+  const [score1, setScore1] = useState<string>('6');
+  const [score2, setScore2] = useState<string>('0');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const currentTournament = tournaments.find(t => t.id === selectedTournament);
-  const isCurrentTournamentGroupBased = currentTournament?.isGroupBased;
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const tournamentsResponse = await api.get<Tournament[]>('/tournaments');
-        setTournaments(tournamentsResponse.data);
-
-        const playersResponse = await api.get<Player[]>('/players');
-        setPlayers(playersResponse.data);
-
-        const groupsResponse = await api.get<Group[]>('/groups');
-        setGroups(groupsResponse.data);
-      } catch (err: any) {
-        console.error("Error fetching data for AddMatchPage:", err);
-        setError('Failed to load data for match creation.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    api.get<Player[]>('/players')
+      .then(r => setPlayers(r.data))
+      .catch(() => setError('Failed to load players. Please try again.'))
+      .finally(() => setLoading(false));
   }, []);
 
-  // Filter players based on selected group if tournament is group-based
-  const availablePlayers = isCurrentTournamentGroupBased && selectedGroup
-    ? players.filter(p => {
-        const group = groups.find(g => g.id === selectedGroup);
-        return group?.playerIds.includes(p.id);
-      })
-    : players;
+  const validateScore = (s1: number, s2: number) =>
+    (s1 === 6 && s2 >= 0 && s2 <= 5) || (s2 === 6 && s1 >= 0 && s1 <= 5);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccessMessage(null);
+    setSuccess(null);
 
-    if (!selectedTournament || !player1 || !player2 || player1 === player2) {
-      setError("Please select a tournament and two different players.");
+    if (!player1 || !player2) {
+      setError('Please select both players.');
+      return;
+    }
+    if (player1 === player2) {
+      setError('Please select two different players.');
       return;
     }
 
-    if (isCurrentTournamentGroupBased && !selectedGroup) {
-      setError("Please select a group for this group-based tournament.");
+    const s1 = parseInt(score1, 10);
+    const s2 = parseInt(score2, 10);
+
+    if (isNaN(s1) || isNaN(s2) || !validateScore(s1, s2)) {
+      setError('Invalid score: the winner must have exactly 6 games and the loser 0–5 games.');
       return;
     }
 
-    const newMatch = {
-      tournamentId: selectedTournament,
-      player1Id: player1,
-      player2Id: player2,
-      score1,
-      score2,
-      location,
-      groupId: isCurrentTournamentGroupBased ? selectedGroup : undefined,
-    };
-
+    setSubmitting(true);
     try {
-      await api.post('/matches', newMatch);
-
-      setSuccessMessage('Match added successfully!');
-      // Clear form
-      setSelectedTournament('');
-      setSelectedGroup('');
+      await api.post('/matches', { player1Id: player1, player2Id: player2, score1: s1, score2: s2 });
+      const p1Name = players.find(p => p.id === player1);
+      const p2Name = players.find(p => p.id === player2);
+      setSuccess(
+        `Match recorded! ${p1Name?.firstName} ${p1Name?.lastName} ${s1} – ${s2} ${p2Name?.firstName} ${p2Name?.lastName}`
+      );
       setPlayer1('');
       setPlayer2('');
-      setScore1(0);
-      setScore2(0);
-      setLocation('');
+      setScore1('6');
+      setScore2('0');
     } catch (err: any) {
-      console.error("Error adding match:", err);
-      setError('Failed to add match.');
+      setError(err.response?.data?.message || 'Failed to submit match. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const winner = (() => {
+    const s1 = parseInt(score1, 10);
+    const s2 = parseInt(score2, 10);
+    if (!player1 || !player2 || isNaN(s1) || isNaN(s2)) return null;
+    const p1 = players.find(p => p.id === player1);
+    const p2 = players.find(p => p.id === player2);
+    if (!p1 || !p2) return null;
+    if (s1 === 6) return `${p1.firstName} ${p1.lastName}`;
+    if (s2 === 6) return `${p2.firstName} ${p2.lastName}`;
+    return null;
+  })();
+
   return (
-    <Box sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h2" gutterBottom>
-        Add New Match Score
+    <Box sx={{ maxWidth: 600, mx: 'auto', mt: 4, px: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+        <SportsTennisIcon color="success" />
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          Submit Match Score
+        </Typography>
+      </Box>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Record a completed match. One set only — the winner must reach 6 games.
       </Typography>
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
           <CircularProgress />
         </Box>
-      ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
-      ) : successMessage ? (
-        <Alert severity="success" sx={{ mt: 2 }}>{successMessage}</Alert>
-      ) : null}
+      ) : (
+        <Card elevation={3}>
+          <CardContent sx={{ p: 4 }}>
+            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
 
-      <Card elevation={3} sx={{ p: 4, mt: 2 }}> {/* Added elevation for Material 3 feel */}
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel id="tournament-select-label">Tournament</InputLabel>
-              <Select
-                labelId="tournament-select-label"
-                id="tournament-select"
-                value={selectedTournament}
-                label="Tournament"
-                onChange={(e) => {
-                  setSelectedTournament(e.target.value as string);
-                  setSelectedGroup('');
-                  setPlayer1('');
-                  setPlayer2('');
-                }}
-                required
-                variant="outlined" // Material 3 default
-              >
-                <MenuItem value="">Select Tournament</MenuItem>
-                {tournaments.map((t) => (
-                  <MenuItem key={t.id} value={t.id}>
-                    {t.name} {t.isGroupBased ? '(Group Based)' : ''}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            {isCurrentTournamentGroupBased && (
+            <form onSubmit={handleSubmit}>
+              {/* Players */}
               <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel id="group-select-label">Group</InputLabel>
+                <InputLabel>Player 1</InputLabel>
                 <Select
-                  labelId="group-select-label"
-                  id="group-select"
-                  value={selectedGroup}
-                  label="Group"
-                  onChange={(e) => {
-                    setSelectedGroup(e.target.value as string);
-                    setPlayer1('');
-                    setPlayer2('');
-                  }}
+                  value={player1}
+                  label="Player 1"
+                  onChange={e => { setPlayer1(e.target.value); setError(null); }}
                   required
-                  variant="outlined" // Material 3 default
                 >
-                  <MenuItem value="">Select Group</MenuItem>
-                  {groups.filter(g => currentTournament && currentTournament.groupIds.includes(g.id)).map((g) => (
-                    <MenuItem key={g.id} value={g.id}>
-                      {g.name}
+                  <MenuItem value="">Select Player 1</MenuItem>
+                  {players.map(p => (
+                    <MenuItem key={p.id} value={p.id} disabled={p.id === player2}>
+                      {p.firstName} {p.lastName}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-            )}
 
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel id="player1-select-label">Player 1</InputLabel>
-              <Select
-                labelId="player1-select-label"
-                id="player1-select"
-                value={player1}
-                label="Player 1"
-                onChange={(e) => setPlayer1(e.target.value as string)}
-                required
-                variant="outlined" // Material 3 default
-              >
-                <MenuItem value="">Select Player 1</MenuItem>
-                {availablePlayers.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.firstName} {p.lastName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel id="player2-select-label">Player 2</InputLabel>
-              <Select
-                labelId="player2-select-label"
-                id="player2-select"
-                value={player2}
-                label="Player 2"
-                onChange={(e) => setPlayer2(e.target.value as string)}
-                required
-                variant="outlined" // Material 3 default
-              >
-                <MenuItem value="">Select Player 2</MenuItem>
-                {availablePlayers.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    {p.firstName} {p.lastName}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6} component="div"> {/* Added component="div" */}
-                <TextField
-                  fullWidth
-                  label="Player 1 Score"
-                  id="score1"
-                  type="number"
-                  value={score1}
-                  onChange={(e) => setScore1(parseInt(e.target.value))}
+              <FormControl fullWidth sx={{ mb: 3 }}>
+                <InputLabel>Player 2</InputLabel>
+                <Select
+                  value={player2}
+                  label="Player 2"
+                  onChange={e => { setPlayer2(e.target.value); setError(null); }}
                   required
-                  variant="outlined" // Material 3 default
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} component="div"> {/* Added component="div" */}
-                <TextField
-                  fullWidth
-                  label="Player 2 Score"
-                  id="score2"
-                  type="number"
-                  value={score2}
-                  onChange={(e) => setScore2(parseInt(e.target.value))}
-                  required
-                  variant="outlined" // Material 3 default
-                />
-              </Grid>
-            </Grid>
+                >
+                  <MenuItem value="">Select Player 2</MenuItem>
+                  {players.map(p => (
+                    <MenuItem key={p.id} value={p.id} disabled={p.id === player1}>
+                      {p.firstName} {p.lastName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            <TextField
-              fullWidth
-              label="Match Location"
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-              sx={{ mb: 3 }}
-              variant="outlined" // Material 3 default
-            />
+              {/* Scores */}
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Final Score (winner must have 6)
+              </Typography>
+              <Grid container spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                <Grid item xs={5}>
+                  <TextField
+                    fullWidth
+                    label="Player 1 Games"
+                    type="number"
+                    value={score1}
+                    onChange={e => { setScore1(e.target.value); setError(null); }}
+                    inputProps={{ min: 0, max: 6 }}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={2} sx={{ textAlign: 'center' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.secondary' }}>–</Typography>
+                </Grid>
+                <Grid item xs={5}>
+                  <TextField
+                    fullWidth
+                    label="Player 2 Games"
+                    type="number"
+                    value={score2}
+                    onChange={e => { setScore2(e.target.value); setError(null); }}
+                    inputProps={{ min: 0, max: 6 }}
+                    required
+                  />
+                </Grid>
+              </Grid>
 
-            <Button type="submit" variant="contained" color="primary" size="large"> {/* Added size for Material 3 feel */}
-              Add Match
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              {/* Quick score picker */}
+              <Box sx={{ mb: 3, mt: 1 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  Quick select:
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  {VALID_SCORES.map(({ score1: s1, score2: s2 }) => (
+                    <Chip
+                      key={`${s1}-${s2}`}
+                      label={`${s1} – ${s2}`}
+                      size="small"
+                      onClick={() => { setScore1(String(s1)); setScore2(String(s2)); setError(null); }}
+                      color={String(score1) === String(s1) && String(score2) === String(s2) ? 'success' : 'default'}
+                      variant={String(score1) === String(s1) && String(score2) === String(s2) ? 'filled' : 'outlined'}
+                      sx={{ cursor: 'pointer' }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Winner preview */}
+              {winner && (
+                <Alert severity="success" icon={false} sx={{ mb: 3 }}>
+                  🏆 <strong>{winner}</strong> wins this match
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                variant="contained"
+                color="success"
+                size="large"
+                fullWidth
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting...' : 'Record Match'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </Box>
   );
 };

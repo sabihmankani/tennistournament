@@ -1,26 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import AddPlayerForm from '../components/AddPlayerForm';
 import { api } from '../apiConfig';
-import { 
-  Box, 
-  Typography, 
-  CircularProgress, 
-  IconButton, 
-  Container, 
-  Grid, 
-  Card, 
-  CardContent, 
-  CardActions, 
-  Alert 
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  IconButton,
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Alert,
+  Avatar,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PeopleIcon from '@mui/icons-material/People';
 
 interface Player {
   id: string;
   firstName: string;
   lastName: string;
-  location: string;
-  ranking: number;
 }
 
 interface PlayersPageProps {
@@ -29,73 +29,96 @@ interface PlayersPageProps {
 
 const PlayersPage: React.FC<PlayersPageProps> = ({ isAdminLoggedIn }) => {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPlayers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get<Player[]>('/players');
-      setPlayers(response.data);
-    } catch (err: any) {
-      console.error("Error fetching players:", err);
+      const res = await api.get<Player[]>('/players');
+      setPlayers(res.data);
+    } catch {
       setError('Failed to fetch players.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchPlayers();
-  }, []);
+  useEffect(() => { fetchPlayers(); }, []);
 
-  const handlePlayerAdded = () => {
-    fetchPlayers(); // Refresh the list after a player is added
-  };
-
-  const handleRemovePlayer = async (id: string) => {
+  const handleRemove = async (id: string, name: string) => {
+    if (!window.confirm(`Remove ${name} from the tournament?`)) return;
     try {
       await api.delete(`/players/${id}`);
-      fetchPlayers(); // Refresh the list after a player is removed
-    } catch (err: any) {
-      console.error("Error removing player:", err);
+      fetchPlayers();
+    } catch {
       setError('Failed to remove player.');
     }
   };
 
-  return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" component="h2" gutterBottom>
-        Players
-      </Typography>
-      {isAdminLoggedIn && <AddPlayerForm onPlayerAdded={handlePlayerAdded} />}
+  const initials = (p: Player) =>
+    `${p.firstName[0] || ''}${p.lastName[0] || ''}`.toUpperCase();
 
-      <Typography variant="h5" component="h3" sx={{ mt: 5, mb: 2 }}>
-        Current Players
+  const avatarColor = (name: string) => {
+    const colors = ['#2e7d32', '#1565c0', '#6a1b9a', '#c62828', '#e65100', '#00695c', '#283593'];
+    const idx = name.charCodeAt(0) % colors.length;
+    return colors[idx];
+  };
+
+  return (
+    <Container sx={{ mt: 4, mb: 6 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <PeopleIcon color="success" />
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
+          Players
+        </Typography>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+        {players.length} player{players.length !== 1 ? 's' : ''} registered in the tournament
       </Typography>
+
+      {isAdminLoggedIn && <AddPlayerForm onPlayerAdded={fetchPlayers} />}
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>
+        <Alert severity="error">{error}</Alert>
       ) : players.length === 0 ? (
-        <Alert severity="info" sx={{ mt: 2 }}>No players added yet.</Alert>
+        <Alert severity="info">No players registered yet. Add players using the form above.</Alert>
       ) : (
-        <Grid container spacing={3}>
-          {players.map((player) => (
+        <Grid container spacing={2}>
+          {players.map(player => (
             <Grid item xs={12} sm={6} md={4} key={player.id}>
-              <Card elevation={2}>
-                <CardContent>
-                  <Typography variant="h6">{`${player.firstName} ${player.lastName}`}</Typography>
-                  <Typography color="text.secondary">{player.location}</Typography>
-                  <Typography>Ranking: {player.ranking}</Typography>
+              <Card elevation={2} sx={{ display: 'flex', alignItems: 'center', p: 1 }}>
+                <Avatar
+                  sx={{
+                    bgcolor: avatarColor(player.firstName),
+                    width: 48,
+                    height: 48,
+                    ml: 1,
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                  }}
+                >
+                  {initials(player)}
+                </Avatar>
+                <CardContent sx={{ flex: 1, py: '12px !important' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                    {player.firstName} {player.lastName}
+                  </Typography>
                 </CardContent>
                 {isAdminLoggedIn && (
-                  <CardActions>
-                    <IconButton edge="end" aria-label="delete" onClick={() => handleRemovePlayer(player.id)}>
-                      <DeleteIcon />
+                  <CardActions sx={{ p: 0, pr: 1 }}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label="remove player"
+                      onClick={() => handleRemove(player.id, `${player.firstName} ${player.lastName}`)}
+                    >
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </CardActions>
                 )}
