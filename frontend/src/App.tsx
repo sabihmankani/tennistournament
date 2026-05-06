@@ -8,6 +8,7 @@ import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import RankingsPage from './pages/RankingsPage';
 import MatchesPage from './pages/MatchesPage';
+import { AppThemeProvider } from './context/ThemeContext';
 
 function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
@@ -20,18 +21,20 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <MuiNavbar isAdminLoggedIn={isAdminLoggedIn} onLoginStatusChange={handleLoginStatusChange} />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/add-match" element={<AddMatchPage />} />
-        <Route path="/matches" element={<MatchesPage isAdminLoggedIn={isAdminLoggedIn} />} />
-        <Route path="/rankings" element={<RankingsPage />} />
-        <Route path="/players" element={<PlayersPage isAdminLoggedIn={isAdminLoggedIn} />} />
-        <Route path="/admin" element={<AdminLoginPage onLoginSuccess={() => handleLoginStatusChange(true)} />} />
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-      </Routes>
-    </div>
+    <AppThemeProvider>
+      <div className="App">
+        <MuiNavbar isAdminLoggedIn={isAdminLoggedIn} onLoginStatusChange={handleLoginStatusChange} />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/add-match" element={<AddMatchPage />} />
+          <Route path="/matches" element={<MatchesPage isAdminLoggedIn={isAdminLoggedIn} />} />
+          <Route path="/rankings" element={<RankingsPage />} />
+          <Route path="/players" element={<PlayersPage isAdminLoggedIn={isAdminLoggedIn} />} />
+          <Route path="/admin" element={<AdminLoginPage onLoginSuccess={() => handleLoginStatusChange(true)} />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+        </Routes>
+      </div>
+    </AppThemeProvider>
   );
 }
 
