@@ -30,6 +30,22 @@ const MatchSchema = new Schema<IMatch>({
 });
 export const Match = model<IMatch>('Match', MatchSchema);
 
+// Weekly scheduled matches set by admin each week
+export interface IWeeklyMatch extends Document {
+  _id: Types.ObjectId;
+  player1Id: Types.ObjectId; // home player
+  player2Id: Types.ObjectId; // away player
+  weekLabel: string;         // e.g., "Week 1 — May 5–11"
+  createdAt: Date;
+}
+const WeeklyMatchSchema = new Schema<IWeeklyMatch>({
+  player1Id: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  player2Id: { type: Schema.Types.ObjectId, ref: 'Player', required: true },
+  weekLabel: { type: String, default: '' },
+  createdAt: { type: Date, default: Date.now },
+});
+export const WeeklyMatch = model<IWeeklyMatch>('WeeklyMatch', WeeklyMatchSchema);
+
 export interface IRateLimit extends Document {
   identifier: string;
   lastMatchTimestamp: Date;

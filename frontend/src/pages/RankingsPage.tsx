@@ -1,52 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../apiConfig';
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Container,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Tooltip,
-  Chip,
+  Box, Typography, CircularProgress, Alert, Container,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Tooltip, Chip,
 } from '@mui/material';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { api } from '../apiConfig';
 
-interface Player {
-  id: string;
-  firstName: string;
-  lastName: string;
-}
+interface Player { id: string; firstName: string; lastName: string; }
 
 interface PlayerRanking {
   player: Player;
+  points: number;
   wins: number;
   losses: number;
-  winPct: number;
+  matchesPlayed: number;
   gamesWon: number;
   gamesLost: number;
-  gamesRatio: number;
-  matchesPlayed: number;
+  gameDiff: number;
 }
 
-interface H2HEntry {
-  score1: number;
-  score2: number;
-}
-
-interface H2HData {
-  players: Player[];
-  h2h: Record<string, Record<string, H2HEntry | null>>;
-}
+interface H2HEntry { score1: number; score2: number; }
+interface H2HData { players: Player[]; h2h: Record<string, Record<string, H2HEntry | null>>; }
 
 const MEDAL = ['🥇', '🥈', '🥉'];
+
+const darkCell = { borderColor: '#1a2e1a', py: 1 };
 
 const RankingsPage: React.FC = () => {
   const [rankings, setRankings] = useState<PlayerRanking[]>([]);
@@ -55,190 +35,189 @@ const RankingsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAll = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [rankRes, h2hRes] = await Promise.all([
-          api.get<PlayerRanking[]>('/rankings/overall'),
-          api.get<H2HData>('/rankings/head-to-head'),
-        ]);
+    Promise.all([
+      api.get<PlayerRanking[]>('/rankings/overall'),
+      api.get<H2HData>('/rankings/head-to-head'),
+    ])
+      .then(([rankRes, h2hRes]) => {
         setRankings(rankRes.data);
         setH2HData(h2hRes.data);
-      } catch {
-        setError('Failed to load rankings.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAll();
+      })
+      .catch(() => setError('Failed to load rankings.'))
+      .finally(() => setLoading(false));
   }, []);
-
-  const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
-        <CircularProgress />
+      <Box sx={{ minHeight: '100vh', bgcolor: '#0a0f0a', display: 'flex', justifyContent: 'center', pt: 12 }}>
+        <CircularProgress sx={{ color: '#c8ff00' }} />
       </Box>
     );
   }
 
-  if (error) {
-    return <Container sx={{ mt: 4 }}><Alert severity="error">{error}</Alert></Container>;
-  }
-
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#0a0f0a' }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <LeaderboardIcon color="info" />
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-          Leaderboard
+      <Box sx={{ background: 'linear-gradient(135deg, #0d2e0d 0%, #1a4d1a 100%)', borderBottom: '2px solid #4caf50', py: 3, px: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LeaderboardIcon sx={{ color: '#c8ff00' }} />
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#c8ff00' }}>Standings</Typography>
+        </Box>
+        <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
+          SBP Summer Tennis League 2026 — Win = 3 pts · Tiebreaker: H2H → Game diff → Games won
         </Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-        Soul Brothers Pakistan Tennis Championship 2025 — Overall Rankings
-      </Typography>
 
-      {/* Leaderboard Table */}
-      {rankings.length === 0 ? (
-        <Alert severity="info" sx={{ mb: 4 }}>No matches recorded yet — standings will appear here once matches are played.</Alert>
-      ) : (
-        <TableContainer component={Paper} elevation={2} sx={{ mb: 6, borderRadius: 2, overflow: 'hidden' }}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'success.main' }}>
-                {['Rank', 'Player', 'W', 'L', 'Played', 'Win %', 'Games Won', 'Games Lost', 'Games %'].map(h => (
-                  <TableCell key={h} sx={{ color: 'white', fontWeight: 700, py: 1.5 }}>{h}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rankings.map((r, i) => (
-                <TableRow
-                  key={r.player.id}
-                  sx={{
-                    bgcolor: i === 0 ? 'rgba(255,215,0,0.08)' : i % 2 === 0 ? 'action.hover' : 'background.paper',
-                    '&:hover': { bgcolor: 'action.selected' },
-                  }}
-                >
-                  <TableCell sx={{ fontWeight: 700 }}>
-                    {MEDAL[i] || i + 1}
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {i === 0 && <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 18 }} />}
-                      <Typography sx={{ fontWeight: i === 0 ? 700 : 400 }}>
-                        {r.player.firstName} {r.player.lastName}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={r.wins} size="small" color="success" sx={{ fontWeight: 700 }} />
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={r.losses} size="small" color="error" variant="outlined" sx={{ fontWeight: 700 }} />
-                  </TableCell>
-                  <TableCell>{r.matchesPlayed}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{pct(r.winPct)}</TableCell>
-                  <TableCell>{r.gamesWon}</TableCell>
-                  <TableCell>{r.gamesLost}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{pct(r.gamesRatio)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {/* Head-to-Head Matrix */}
-      {h2hData && h2hData.players.length > 0 && (
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
-            Head-to-Head Results
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Row player's score vs column player. Green = win, Red = loss. Blank = not yet played.
-          </Typography>
-          <Box sx={{ overflowX: 'auto' }}>
-            <Table size="small" sx={{ minWidth: 600 }}>
+        {/* Main leaderboard */}
+        {rankings.length === 0 ? (
+          <Alert
+            severity="info"
+            sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', color: 'rgba(255,255,255,0.6)' }}
+          >
+            No matches played yet — standings will appear here after the first match is recorded.
+          </Alert>
+        ) : (
+          <TableContainer
+            component={Paper}
+            sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', borderRadius: 2, mb: 6 }}
+          >
+            <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 700, bgcolor: 'background.paper', borderBottom: 2 }}>vs</TableCell>
-                  {h2hData.players.map(p => (
-                    <Tooltip key={p.id} title={`${p.firstName} ${p.lastName}`} arrow>
-                      <TableCell
-                        align="center"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: '0.7rem',
-                          maxWidth: 60,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          borderBottom: 2,
-                          bgcolor: 'background.paper',
-                        }}
-                      >
-                        {p.firstName}
-                      </TableCell>
-                    </Tooltip>
+                <TableRow sx={{ bgcolor: '#0d2e0d' }}>
+                  {['Rank', 'Player', 'Pts', 'W', 'L', 'Played', '+/−', 'GW'].map(h => (
+                    <TableCell key={h} sx={{ color: '#c8ff00', fontWeight: 700, py: 1.5, borderColor: '#1e3a1e' }}>
+                      {h}
+                    </TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {h2hData.players.map((rowPlayer, ri) => (
-                  <TableRow key={rowPlayer.id} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
-                    <TableCell sx={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                      {rowPlayer.firstName} {rowPlayer.lastName}
+                {rankings.map((r, i) => (
+                  <TableRow
+                    key={r.player.id}
+                    sx={{
+                      bgcolor: i === 0 ? 'rgba(200,255,0,0.05)' : 'transparent',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.03)' },
+                    }}
+                  >
+                    <TableCell sx={{ ...darkCell, fontWeight: 700, color: '#c8ff00' }}>
+                      {MEDAL[i] || i + 1}
                     </TableCell>
-                    {h2hData.players.map((colPlayer, ci) => {
-                      if (rowPlayer.id === colPlayer.id) {
-                        return (
-                          <TableCell
-                            key={colPlayer.id}
-                            align="center"
-                            sx={{ bgcolor: 'grey.200', fontSize: '0.7rem' }}
-                          >
-                            —
-                          </TableCell>
-                        );
-                      }
-                      const result = h2hData.h2h[rowPlayer.id]?.[colPlayer.id];
-                      if (!result) {
-                        return (
-                          <TableCell key={colPlayer.id} align="center" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-                            ·
-                          </TableCell>
-                        );
-                      }
-                      const won = result.score1 > result.score2;
-                      return (
-                        <TableCell
-                          key={colPlayer.id}
-                          align="center"
-                          sx={{
-                            bgcolor: won ? 'rgba(46,125,50,0.15)' : 'rgba(211,47,47,0.1)',
-                            color: won ? 'success.dark' : 'error.dark',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            border: '1px solid',
-                            borderColor: won ? 'success.light' : 'error.light',
-                          }}
-                        >
-                          {result.score1}–{result.score2}
-                        </TableCell>
-                      );
-                    })}
+                    <TableCell sx={darkCell}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {i === 0 && <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 16 }} />}
+                        <Typography sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: i < 3 ? 700 : 400 }}>
+                          {r.player.firstName} {r.player.lastName}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={darkCell}>
+                      <Typography sx={{ color: '#c8ff00', fontWeight: 900, fontSize: '1.1rem' }}>
+                        {r.points}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={darkCell}>
+                      <Chip label={r.wins} size="small" sx={{ bgcolor: 'rgba(76,175,80,0.2)', color: '#4caf50', fontWeight: 700 }} />
+                    </TableCell>
+                    <TableCell sx={darkCell}>
+                      <Chip label={r.losses} size="small" sx={{ bgcolor: 'rgba(239,83,80,0.15)', color: '#ef5350', fontWeight: 700 }} />
+                    </TableCell>
+                    <TableCell sx={{ ...darkCell, color: 'rgba(255,255,255,0.5)' }}>{r.matchesPlayed}</TableCell>
+                    <TableCell sx={{ ...darkCell, color: r.gameDiff >= 0 ? '#4caf50' : '#ef5350', fontWeight: 700 }}>
+                      {r.gameDiff > 0 ? '+' : ''}{r.gameDiff}
+                    </TableCell>
+                    <TableCell sx={{ ...darkCell, color: 'rgba(255,255,255,0.6)' }}>{r.gamesWon}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </TableContainer>
+        )}
+
+        {/* Head-to-Head Matrix */}
+        {h2hData && h2hData.players.length > 0 && (
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 800, color: '#c8ff00', mb: 0.5 }}>
+              Head-to-Head
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', mb: 2 }}>
+              Row player's score vs column player. Green = win · Red = loss · · = not yet played.
+            </Typography>
+            <Box sx={{ overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 500 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ bgcolor: '#111c11', color: '#c8ff00', fontWeight: 700, borderColor: '#1a2e1a' }}>
+                      vs
+                    </TableCell>
+                    {h2hData.players.map(p => (
+                      <Tooltip key={p.id} title={`${p.firstName} ${p.lastName}`} arrow>
+                        <TableCell
+                          align="center"
+                          sx={{
+                            bgcolor: '#111c11', color: '#c8ff00', fontWeight: 700,
+                            fontSize: '0.65rem', maxWidth: 50, whiteSpace: 'nowrap',
+                            overflow: 'hidden', textOverflow: 'ellipsis',
+                            borderColor: '#1a2e1a',
+                          }}
+                        >
+                          {p.firstName}
+                        </TableCell>
+                      </Tooltip>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {h2hData.players.map(rowP => (
+                    <TableRow key={rowP.id} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
+                      <TableCell sx={{ bgcolor: '#111c11', color: 'rgba(255,255,255,0.8)', fontWeight: 600, fontSize: '0.7rem', whiteSpace: 'nowrap', borderColor: '#1a2e1a' }}>
+                        {rowP.firstName} {rowP.lastName}
+                      </TableCell>
+                      {h2hData.players.map(colP => {
+                        if (rowP.id === colP.id) {
+                          return (
+                            <TableCell key={colP.id} align="center" sx={{ bgcolor: '#0d2e0d', color: '#2e4a2e', borderColor: '#1a2e1a' }}>
+                              —
+                            </TableCell>
+                          );
+                        }
+                        const result = h2hData.h2h[rowP.id]?.[colP.id];
+                        if (!result) {
+                          return (
+                            <TableCell key={colP.id} align="center" sx={{ color: 'rgba(255,255,255,0.15)', borderColor: '#1a2e1a', bgcolor: '#0d120d' }}>
+                              ·
+                            </TableCell>
+                          );
+                        }
+                        const won = result.score1 > result.score2;
+                        return (
+                          <TableCell
+                            key={colP.id}
+                            align="center"
+                            sx={{
+                              bgcolor: won ? 'rgba(76,175,80,0.15)' : 'rgba(239,83,80,0.1)',
+                              color: won ? '#4caf50' : '#ef5350',
+                              fontWeight: 700, fontSize: '0.75rem',
+                              border: '1px solid',
+                              borderColor: won ? 'rgba(76,175,80,0.3)' : 'rgba(239,83,80,0.2)',
+                            }}
+                          >
+                            {result.score1}–{result.score2}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
           </Box>
-        </Box>
-      )}
-    </Container>
+        )}
+      </Container>
+    </Box>
   );
 };
 
