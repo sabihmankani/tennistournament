@@ -48,6 +48,30 @@ const MuiNavbar: React.FC<MuiNavbarProps> = ({ isAdminLoggedIn, onLoginStatusCha
 
   return (
     <Box sx={{ flexGrow: 1 }}>
+      {/* Top agency banner */}
+      <Box
+        sx={{
+          bgcolor: '#050a05',
+          borderBottom: '1px solid #1a2e1a',
+          py: 0.5,
+          px: 2,
+          textAlign: 'center',
+        }}
+      >
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem', letterSpacing: 1 }}>
+          Designed and Developed by{' '}
+          <Box
+            component="a"
+            href="https://magency.co"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: '#c8ff00', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          >
+            Magency Consultants
+          </Box>
+        </Typography>
+      </Box>
+
       <AppBar
         position="sticky"
         sx={{
