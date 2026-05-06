@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { Container } from '@mui/material';
-
 import MuiNavbar from './components/MuiNavbar';
 import HomePage from './pages/HomePage';
 import PlayersPage from './pages/PlayersPage';
