@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../apiConfig';
-import {
-  Box, TextField, Button, Typography, Card, CardContent, Alert,
-} from '@mui/material';
-import LockIcon from '@mui/icons-material/Lock';
+import { Box, TextField, Button, Typography, Alert } from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import SportsTennisIcon from '@mui/icons-material/SportsTennis';
+import { useAppTheme } from '../context/ThemeContext';
 
 interface AdminLoginPageProps {
   onLoginSuccess: () => void;
 }
 
 const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
+  const { c } = useAppTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -37,51 +37,104 @@ const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   const fieldSx = {
-    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.5)' },
+    '& .MuiInputLabel-root': { color: c.textMuted },
+    '& .MuiInputLabel-root.Mui-focused': { color: c.green },
     '& .MuiOutlinedInput-root': {
-      color: 'white',
-      '& fieldset': { borderColor: '#2e4a2e' },
-      '&:hover fieldset': { borderColor: '#4caf50' },
+      color: c.text,
+      bgcolor: c.surface,
+      '& fieldset': { borderColor: c.border },
+      '&:hover fieldset': { borderColor: c.borderStrong },
+      '&.Mui-focused fieldset': { borderColor: c.green },
     },
   };
 
   return (
     <Box
       sx={{
-        minHeight: '100vh', bgcolor: '#0a0f0a',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2,
+        minHeight: '100vh',
+        bgcolor: c.bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        px: 2,
+        transition: 'background-color 0.2s',
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: 400 }}>
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <SportsTennisIcon sx={{ color: '#c8ff00', fontSize: 48 }} />
-          <Typography variant="h5" sx={{ fontWeight: 800, color: '#c8ff00', mt: 1 }}>Admin Login</Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)' }}>SBP Summer Tennis League 2026</Typography>
+      <Box sx={{ width: '100%', maxWidth: 380 }}>
+        {/* Logo */}
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: '14px',
+              bgcolor: '#1B5E20',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 1.5,
+            }}
+          >
+            <SportsTennisIcon sx={{ color: '#fff', fontSize: 28 }} />
+          </Box>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: c.text }}>Admin Login</Typography>
+          <Typography sx={{ color: c.textMuted, fontSize: '0.8rem', mt: 0.25 }}>SBP Summer Tennis League 2026</Typography>
         </Box>
 
-        <Card sx={{ bgcolor: '#111c11', border: '1px solid #1e3a1e', borderRadius: 3 }}>
-          <CardContent sx={{ p: 4 }}>
-            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-            <form onSubmit={handleSubmit}>
-              <TextField fullWidth label="Username" value={username}
-                onChange={e => setUsername(e.target.value)} required sx={{ mb: 2.5, ...fieldSx }}
-              />
-              <TextField fullWidth label="Password" type="password" value={password}
-                onChange={e => setPassword(e.target.value)} required sx={{ mb: 3, ...fieldSx }}
-              />
-              <Button
-                type="submit" variant="contained" fullWidth size="large"
-                disabled={loading} startIcon={<LockIcon />}
-                sx={{
-                  bgcolor: '#c8ff00', color: '#0a1a0a', fontWeight: 800,
-                  '&:hover': { bgcolor: '#b0e000' },
-                }}
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <Box
+          sx={{
+            bgcolor: c.cardBg,
+            borderRadius: 3,
+            border: `1px solid ${c.border}`,
+            p: 3,
+          }}
+        >
+          {error && (
+            <Alert severity="error" sx={{ mb: 2.5, fontSize: '0.8rem' }}>
+              {error}
+            </Alert>
+          )}
+          <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              sx={{ mb: 2, ...fieldSx }}
+            />
+            <TextField
+              fullWidth
+              label="Password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              sx={{ mb: 2.5, ...fieldSx }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={loading}
+              startIcon={<LockOutlinedIcon />}
+              sx={{
+                bgcolor: '#1B5E20',
+                color: '#fff',
+                fontWeight: 700,
+                py: 1.25,
+                textTransform: 'none',
+                fontSize: '0.95rem',
+                borderRadius: 2,
+                '&:hover': { bgcolor: '#155216' },
+                boxShadow: 'none',
+              }}
+            >
+              {loading ? 'Signing in…' : 'Sign In'}
+            </Button>
+          </form>
+        </Box>
       </Box>
     </Box>
   );
