@@ -119,12 +119,11 @@ const AdminDashboardPage: React.FC = () => {
     if (!window.confirm('Seed 9 players + 9 Week 1 fixtures? (Existing players are kept, weekly schedule is replaced.)')) return;
     setSeeding(true); setError(null);
     try {
-      const res = await api.post('/admin/seed-week1');
-      setSuccess(res.data.message);
-      await fetchData();
+      await api.post('/admin/seed-week1');
+      setSuccess('Seeded! Reloading…');
+      setTimeout(() => window.location.reload(), 1200);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Seed failed.');
-    } finally {
       setSeeding(false);
     }
   };
