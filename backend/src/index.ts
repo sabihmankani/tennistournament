@@ -245,9 +245,18 @@ app.get('/api/weekly-matches', async (_req, res) => {
 
       const formatted = formatDoc(wm);
       formatted.isCompleted = !!recorded;
-      formatted.completedMatch = recorded
-        ? { ...recorded, id: (recorded as any)._id.toString() }
-        : null;
+      if (recorded) {
+        const rp1 = recorded.player1Id as any;
+        const rp2 = recorded.player2Id as any;
+        formatted.completedMatch = {
+          score1: recorded.score1,
+          score2: recorded.score2,
+          player1Id: { id: (rp1._id ?? rp1.id).toString(), firstName: rp1.firstName, lastName: rp1.lastName },
+          player2Id: { id: (rp2._id ?? rp2.id).toString(), firstName: rp2.firstName, lastName: rp2.lastName },
+        };
+      } else {
+        formatted.completedMatch = null;
+      }
       return formatted;
     });
 
