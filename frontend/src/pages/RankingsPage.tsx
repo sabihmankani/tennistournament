@@ -18,7 +18,7 @@ interface PlayerRanking {
   gameDiff: number;
 }
 
-interface H2HEntry { score1: number; score2: number; }
+interface H2HEntry { wins: number; losses: number; }
 interface H2HData { players: Player[]; h2h: Record<string, Record<string, H2HEntry | null>>; }
 
 const RankingsPage: React.FC = () => {
@@ -267,7 +267,8 @@ const RankingsPage: React.FC = () => {
                             );
                           }
 
-                          const won = result.score1 > result.score2;
+                          const won = result.wins > result.losses;
+                          const tied = result.wins === result.losses;
                           return (
                             <Box
                               key={colP.id}
@@ -275,18 +276,18 @@ const RankingsPage: React.FC = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                bgcolor: won ? `${c.winColor}18` : `${c.lossColor}12`,
+                                bgcolor: tied ? 'transparent' : won ? `${c.winColor}18` : `${c.lossColor}12`,
                               }}
                             >
                               <Typography
                                 sx={{
                                   fontSize: '0.75rem',
                                   fontWeight: 700,
-                                  color: won ? c.winColor : c.lossColor,
+                                  color: tied ? c.textMuted : won ? c.winColor : c.lossColor,
                                   fontVariantNumeric: 'tabular-nums',
                                 }}
                               >
-                                {result.score1}–{result.score2}
+                                {result.wins}–{result.losses}
                               </Typography>
                             </Box>
                           );
