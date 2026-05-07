@@ -246,8 +246,13 @@ const RankingsPage: React.FC = () => {
                             );
                           }
 
-                          const result = h2hData.h2h[rowP.id]?.[colP.id];
-                          const scores = result?.scores ?? [];
+                          const rawResult = h2hData.h2h[rowP.id]?.[colP.id] as any;
+                          // Handle both new { scores[] } shape and old { score1, score2 } shape
+                          const scores: { s1: number; s2: number }[] =
+                            rawResult?.scores ??
+                            (rawResult?.score1 !== undefined
+                              ? [{ s1: rawResult.score1, s2: rawResult.score2 }]
+                              : []);
                           // Cell bg: green tint if overall winning record, red if losing, neutral otherwise
                           const allWins = scores.length > 0 && scores.every(s => s.s1 > s.s2);
                           const allLosses = scores.length > 0 && scores.every(s => s.s1 < s.s2);
