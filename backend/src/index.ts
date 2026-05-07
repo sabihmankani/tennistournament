@@ -180,7 +180,7 @@ app.get('/api/rankings/head-to-head', async (_req, res) => {
     const players = await Player.find().sort({ firstName: 1 });
     const matches = await Match.find();
 
-    const h2h: Record<string, Record<string, { score1: number; score2: number } | null>> = {};
+    const h2h: Record<string, Record<string, { wins: number; losses: number } | null>> = {};
     players.forEach(p => {
       h2h[p._id.toString()] = {};
       players.forEach(opp => {
@@ -192,8 +192,15 @@ app.get('/api/rankings/head-to-head', async (_req, res) => {
     matches.forEach(match => {
       const p1 = match.player1Id.toString();
       const p2 = match.player2Id.toString();
-      if (h2h[p1]) h2h[p1][p2] = { score1: match.score1, score2: match.score2 };
-      if (h2h[p2]) h2h[p2][p1] = { score1: match.score2, score2: match.score1 };
+      const p1won = match.score1 > match.score2;
+      if (h2h[p1] !== undefined) {
+        if (!h2h[p1][p2]) h2h[p1][p2] = { wins: 0, losses: 0 };
+        if (p1won) h2h[p1][p2]!.wins++; else h2h[p1][p2]!.losses++;
+      }
+      if (h2h[p2] !== undefined) {
+        if (!h2h[p2][p1]) h2h[p2][p1] = { wins: 0, losses: 0 };
+        if (p1won) h2h[p2][p1]!.losses++; else h2h[p2][p1]!.wins++;
+      }
     });
 
     res.json({ players: players.map(formatDoc), h2h });
