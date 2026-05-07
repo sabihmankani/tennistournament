@@ -13,8 +13,8 @@ import PlayerAvatar from '../components/PlayerAvatar';
 interface Player { id: string; firstName: string; lastName: string; }
 
 const VALID_SCORES = [
-  [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
-  [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
+  [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [7, 5],
+  [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [5, 7],
 ];
 
 const AddMatchPage: React.FC = () => {
@@ -25,8 +25,8 @@ const AddMatchPage: React.FC = () => {
   const prePlayer2 = searchParams.get('player2') || '';
 
   const [players, setPlayers] = useState<Player[]>([]);
-  const [player1, setPlayer1] = useState(prePlayer1);
-  const [player2, setPlayer2] = useState(prePlayer2);
+  const [player1, setPlayer1] = useState('');
+  const [player2, setPlayer2] = useState('');
   const [score1, setScore1] = useState('6');
   const [score2, setScore2] = useState('0');
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,10 @@ const AddMatchPage: React.FC = () => {
   const isPreSelected = !!(prePlayer1 && prePlayer2);
 
   const validateScore = (s1: number, s2: number) =>
-    (s1 === 6 && s2 >= 0 && s2 <= 5) || (s2 === 6 && s1 >= 0 && s1 <= 5);
+    (s1 === 6 && s2 >= 0 && s2 <= 5) ||
+    (s2 === 6 && s1 >= 0 && s1 <= 5) ||
+    (s1 === 7 && s2 === 5) ||
+    (s2 === 7 && s1 === 5);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,8 +83,8 @@ const AddMatchPage: React.FC = () => {
   const p2Obj = players.find(p => p.id === player2);
   const s1n = parseInt(score1, 10);
   const s2n = parseInt(score2, 10);
-  const winner = p1Obj && p2Obj && !isNaN(s1n) && !isNaN(s2n)
-    ? (s1n === 6 ? p1Obj : s2n === 6 ? p2Obj : null)
+  const winner = p1Obj && p2Obj && !isNaN(s1n) && !isNaN(s2n) && validateScore(s1n, s2n)
+    ? (s1n > s2n ? p1Obj : p2Obj)
     : null;
 
   const selectSx = {
@@ -226,7 +229,7 @@ const AddMatchPage: React.FC = () => {
                   type="number"
                   value={score1}
                   onChange={e => { setScore1(e.target.value); setError(null); }}
-                  inputProps={{ min: 0, max: 6 }}
+                  inputProps={{ min: 0, max: 7 }}
                   required
                   sx={fieldSx}
                 />
@@ -237,7 +240,7 @@ const AddMatchPage: React.FC = () => {
                   type="number"
                   value={score2}
                   onChange={e => { setScore2(e.target.value); setError(null); }}
-                  inputProps={{ min: 0, max: 6 }}
+                  inputProps={{ min: 0, max: 7 }}
                   required
                   sx={fieldSx}
                 />
