@@ -60,9 +60,9 @@ const HomePage: React.FC = () => {
 
   const completedWeekly = weekly.filter(w => w.isCompleted).length;
   const totalWeekly = weekly.length;
-  const gamesContested = weekly
-    .filter(w => w.isCompleted && w.completedMatch)
-    .reduce((sum, w) => sum + (w.completedMatch!.score1 + w.completedMatch!.score2), 0);
+  // Use all-match stats from rankings so non-weekly matches are included
+  const totalMatchesPlayed = rankings.reduce((sum, r) => sum + r.wins, 0);
+  const gamesContested = rankings.reduce((sum, r) => sum + r.gamesWon, 0);
   const leadScore = rankings.length > 0 ? rankings[0].points : 0;
 
   const weekLabel = weekly.length > 0 ? weekly[0].weekLabel : '';
@@ -152,7 +152,7 @@ const HomePage: React.FC = () => {
               <Box sx={{ display: 'flex', gap: { xs: 3, sm: 4 } }}>
                 <Box>
                   <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, color: c.text, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-                    {completedWeekly}/{totalWeekly || 9}
+                    {totalMatchesPlayed}
                   </Typography>
                   <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', color: c.textMuted, textTransform: 'uppercase', mt: 0.25 }}>
                     Matches Played
