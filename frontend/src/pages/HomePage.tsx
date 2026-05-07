@@ -378,14 +378,14 @@ const HomePage: React.FC = () => {
                 <Box
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: '36px 1fr 44px 44px 52px',
+                    gridTemplateColumns: '36px 1fr 40px 40px 40px 52px',
                     px: 2,
                     py: 1,
                     borderBottom: `1px solid ${c.border}`,
                     alignItems: 'center',
                   }}
                 >
-                  {['#', 'PLAYER', 'W', 'L', 'PTS'].map(h => (
+                  {['#', 'PLAYER', 'P', 'W', 'L', 'PTS'].map(h => (
                     <Typography key={h} sx={{ fontSize: '0.62rem', fontWeight: 700, color: c.textMuted, letterSpacing: '0.1em' }}>
                       {h}
                     </Typography>
@@ -404,7 +404,7 @@ const HomePage: React.FC = () => {
                       key={r.player.id}
                       sx={{
                         display: 'grid',
-                        gridTemplateColumns: '36px 1fr 44px 44px 52px',
+                        gridTemplateColumns: '36px 1fr 40px 40px 40px 52px',
                         px: 2,
                         py: 1.25,
                         alignItems: 'center',
@@ -423,10 +423,13 @@ const HomePage: React.FC = () => {
                           {r.player.firstName}
                         </Typography>
                       </Box>
+                      <Typography sx={{ fontSize: '0.875rem', color: c.textMuted }}>
+                        {r.matchesPlayed}
+                      </Typography>
                       <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: c.winColor }}>
                         {r.wins}
                       </Typography>
-                      <Typography sx={{ fontSize: '0.875rem', color: c.textMuted }}>
+                      <Typography sx={{ fontSize: '0.875rem', color: r.losses > 0 ? c.lossColor : c.textMuted }}>
                         {r.losses}
                       </Typography>
                       <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: c.text }}>

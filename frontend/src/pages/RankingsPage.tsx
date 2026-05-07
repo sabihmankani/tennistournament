@@ -91,13 +91,13 @@ const RankingsPage: React.FC = () => {
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: '44px 1fr 56px 56px 64px 64px',
+                  gridTemplateColumns: '44px 1fr 48px 48px 48px 60px 60px',
                   px: 2,
                   py: 1.25,
                   borderBottom: `1px solid ${c.border}`,
                 }}
               >
-                {['#', 'PLAYER', 'W', 'L', '+/−', 'PTS'].map(h => (
+                {['#', 'PLAYER', 'P', 'W', 'L', '+/−', 'PTS'].map(h => (
                   <Typography key={h} sx={{ fontSize: '0.62rem', fontWeight: 700, color: c.textMuted, letterSpacing: '0.1em' }}>
                     {h}
                   </Typography>
@@ -114,7 +114,7 @@ const RankingsPage: React.FC = () => {
                     key={r.player.id}
                     sx={{
                       display: 'grid',
-                      gridTemplateColumns: '44px 1fr 56px 56px 64px 64px',
+                      gridTemplateColumns: '44px 1fr 48px 48px 48px 60px 60px',
                       px: 2,
                       py: 1.35,
                       alignItems: 'center',
@@ -137,6 +137,9 @@ const RankingsPage: React.FC = () => {
                         {r.player.firstName} {r.player.lastName}
                       </Typography>
                     </Box>
+                    <Typography sx={{ fontSize: '0.9rem', color: c.textMuted }}>
+                      {r.matchesPlayed}
+                    </Typography>
                     <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: c.winColor }}>
                       {r.wins}
                     </Typography>
@@ -168,7 +171,7 @@ const RankingsPage: React.FC = () => {
                     Head-to-head
                   </Typography>
                   <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: c.textMuted, letterSpacing: '0.08em' }}>
-                    ROW VS COLUMN
+                    ROW VS COLUMN · HOME / AWAY
                   </Typography>
                 </Box>
 
@@ -185,7 +188,7 @@ const RankingsPage: React.FC = () => {
                     <Box
                       sx={{
                         display: 'grid',
-                        gridTemplateColumns: `120px repeat(${h2hData.players.length}, 52px)`,
+                        gridTemplateColumns: `120px repeat(${h2hData.players.length}, 62px)`,
                         borderBottom: `1px solid ${c.border}`,
                       }}
                     >
@@ -212,7 +215,7 @@ const RankingsPage: React.FC = () => {
                         key={rowP.id}
                         sx={{
                           display: 'grid',
-                          gridTemplateColumns: `120px repeat(${h2hData.players.length}, 52px)`,
+                          gridTemplateColumns: `120px repeat(${h2hData.players.length}, 62px)`,
                           borderBottom: ri < h2hData.players.length - 1 ? `1px solid ${c.border}` : 'none',
                           '&:hover': { bgcolor: c.border },
                         }}
@@ -233,68 +236,59 @@ const RankingsPage: React.FC = () => {
                           </Typography>
                         </Box>
 
-                        {/* Cells */}
+                        {/* Cells — each shows up to 2 scores (home + away) stacked */}
                         {h2hData.players.map(colP => {
                           if (rowP.id === colP.id) {
                             return (
-                              <Box
-                                key={colP.id}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  bgcolor: c.border,
-                                }}
-                              >
+                              <Box key={colP.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: c.border }}>
                                 <Typography sx={{ color: c.textSubtle, fontSize: '0.875rem' }}>—</Typography>
                               </Box>
                             );
                           }
 
                           const result = h2hData.h2h[rowP.id]?.[colP.id];
-                          if (!result) {
-                            return (
-                              <Box
-                                key={colP.id}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                <Typography sx={{ color: c.textSubtle, fontSize: '0.75rem' }}>·</Typography>
-                              </Box>
-                            );
-                          }
+                          const scores = result?.scores ?? [];
+                          // Cell bg: green tint if overall winning record, red if losing, neutral otherwise
+                          const allWins = scores.length > 0 && scores.every(s => s.s1 > s.s2);
+                          const allLosses = scores.length > 0 && scores.every(s => s.s1 < s.s2);
+                          const cellBg = allWins ? `${c.winColor}15` : allLosses ? `${c.lossColor}10` : 'transparent';
 
-                          const totalPlayed = result.wins + result.losses;
-                          const won = result.wins > result.losses;
-                          const tied = result.wins === result.losses && totalPlayed > 0;
-                          // Single match: show actual game score. Multiple: show match record.
-                          const displayText = totalPlayed === 1
-                            ? `${result.scores[0].s1}–${result.scores[0].s2}`
-                            : `${result.wins}W ${result.losses}L`;
                           return (
                             <Box
                               key={colP.id}
                               sx={{
                                 display: 'flex',
+                                flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                bgcolor: tied ? 'transparent' : won ? `${c.winColor}18` : `${c.lossColor}12`,
+                                gap: 0.25,
+                                py: 0.75,
+                                bgcolor: cellBg,
                               }}
                             >
-                              <Typography
-                                sx={{
-                                  fontSize: totalPlayed === 1 ? '0.75rem' : '0.65rem',
-                                  fontWeight: 700,
-                                  color: tied ? c.textMuted : won ? c.winColor : c.lossColor,
-                                  fontVariantNumeric: 'tabular-nums',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {displayText}
-                              </Typography>
+                              {[0, 1].map(i => {
+                                const s = scores[i];
+                                if (!s) {
+                                  return (
+                                    <Typography key={i} sx={{ color: c.textSubtle, fontSize: '0.65rem', lineHeight: 1.4 }}>·</Typography>
+                                  );
+                                }
+                                const won = s.s1 > s.s2;
+                                return (
+                                  <Typography
+                                    key={i}
+                                    sx={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      color: won ? c.winColor : c.lossColor,
+                                      fontVariantNumeric: 'tabular-nums',
+                                      lineHeight: 1.4,
+                                    }}
+                                  >
+                                    {s.s1}–{s.s2}
+                                  </Typography>
+                                );
+                              })}
                             </Box>
                           );
                         })}
