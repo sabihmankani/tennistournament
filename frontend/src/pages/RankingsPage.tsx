@@ -18,7 +18,7 @@ interface PlayerRanking {
   gameDiff: number;
 }
 
-interface H2HEntry { wins: number; losses: number; }
+interface H2HEntry { wins: number; losses: number; scores: { s1: number; s2: number }[]; }
 interface H2HData { players: Player[]; h2h: Record<string, Record<string, H2HEntry | null>>; }
 
 const RankingsPage: React.FC = () => {
@@ -267,8 +267,13 @@ const RankingsPage: React.FC = () => {
                             );
                           }
 
+                          const totalPlayed = result.wins + result.losses;
                           const won = result.wins > result.losses;
-                          const tied = result.wins === result.losses;
+                          const tied = result.wins === result.losses && totalPlayed > 0;
+                          // Single match: show actual game score. Multiple: show match record.
+                          const displayText = totalPlayed === 1
+                            ? `${result.scores[0].s1}–${result.scores[0].s2}`
+                            : `${result.wins}W ${result.losses}L`;
                           return (
                             <Box
                               key={colP.id}
@@ -281,13 +286,14 @@ const RankingsPage: React.FC = () => {
                             >
                               <Typography
                                 sx={{
-                                  fontSize: '0.75rem',
+                                  fontSize: totalPlayed === 1 ? '0.75rem' : '0.65rem',
                                   fontWeight: 700,
                                   color: tied ? c.textMuted : won ? c.winColor : c.lossColor,
                                   fontVariantNumeric: 'tabular-nums',
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
-                                {result.wins}–{result.losses}
+                                {displayText}
                               </Typography>
                             </Box>
                           );
