@@ -82,6 +82,21 @@ app.delete('/api/players/:id', async (req: AuthRequest, res) => {
   } catch { res.status(500).send('Server Error'); }
 });
 
+app.put('/api/players/:id', async (req: AuthRequest, res) => {
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const { firstName, lastName } = req.body;
+    if (!firstName || !lastName) return res.status(400).json({ message: 'Name required' });
+    const player = await Player.findByIdAndUpdate(
+      req.params.id,
+      { firstName: firstName.trim(), lastName: lastName.trim() },
+      { new: true }
+    );
+    if (!player) return res.status(404).json({ message: 'Player not found' });
+    res.json(formatDoc(player));
+  } catch { res.status(500).send('Server Error'); }
+});
+
 // ──────────────────────────────────────────────
 // Matches
 // ──────────────────────────────────────────────
