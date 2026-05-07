@@ -128,8 +128,13 @@ app.post('/api/matches', async (req: AuthRequest, res) => {
 
     const s1 = Number(score1);
     const s2 = Number(score2);
-    if (!((s1 === 6 && s2 >= 0 && s2 <= 5) || (s2 === 6 && s1 >= 0 && s1 <= 5))) {
-      return res.status(400).json({ message: 'Invalid score: winner must have 6, loser 0–5.' });
+    const validScore =
+      (s1 === 6 && s2 >= 0 && s2 <= 5) ||
+      (s2 === 6 && s1 >= 0 && s1 <= 5) ||
+      (s1 === 7 && s2 === 5) ||
+      (s2 === 7 && s1 === 5);
+    if (!validScore) {
+      return res.status(400).json({ message: 'Invalid score: winner must have 6 (loser 0–5) or 7-5.' });
     }
 
     const match = new Match({
