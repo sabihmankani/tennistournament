@@ -259,6 +259,11 @@ app.get('/api/weekly-matches', async (_req, res) => {
       });
 
       const formatted = formatDoc(wm);
+      // formatDoc only converts the top-level _id; patch nested player objects too
+      const fp1 = formatted.player1Id as any;
+      const fp2 = formatted.player2Id as any;
+      if (fp1?._id) { fp1.id = fp1._id.toString(); delete fp1._id; }
+      if (fp2?._id) { fp2.id = fp2._id.toString(); delete fp2._id; }
       formatted.isCompleted = !!recorded;
       if (recorded) {
         const rp1 = recorded.player1Id as any;
