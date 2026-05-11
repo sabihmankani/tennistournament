@@ -128,6 +128,19 @@ const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const handleSeedWeek2 = async () => {
+    if (!window.confirm('Add Week 2 fixtures? (Week 1 fixtures and all players are kept.)')) return;
+    setSeeding(true); setError(null);
+    try {
+      await api.post('/admin/seed-week2');
+      setSuccess('Week 2 seeded! Reloading…');
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Seed failed.');
+      setSeeding(false);
+    }
+  };
+
   const handleClearAllData = async () => {
     if (!window.confirm('⚠️ Delete ALL players, matches, and schedule?')) return;
     if (!window.confirm('Last chance — this cannot be undone.')) return;
@@ -429,23 +442,26 @@ const AdminDashboardPage: React.FC = () => {
                 <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>Quick Seed</Typography>
               </Box>
               <Typography sx={{ color: c.textMuted, fontSize: '0.875rem', mb: 2 }}>
-                Adds all 9 players + Week 1 fixtures in one click. Skips players that already exist. Replaces weekly schedule.
+                Seed players and fixtures per week. Week 1 also seeds all 9 players.
               </Typography>
-              <Button
-                variant="contained"
-                onClick={handleSeedWeek1}
-                disabled={seeding}
-                sx={{
-                  bgcolor: '#1B5E20',
-                  color: '#fff',
-                  fontWeight: 700,
-                  textTransform: 'none',
-                  '&:hover': { bgcolor: '#155216' },
-                  boxShadow: 'none',
-                }}
-              >
-                {seeding ? 'Seeding…' : '🌱 Seed Week 1 Players + Fixtures'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  onClick={handleSeedWeek1}
+                  disabled={seeding}
+                  sx={{ bgcolor: '#1B5E20', color: '#fff', fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#155216' }, boxShadow: 'none' }}
+                >
+                  {seeding ? 'Seeding…' : '🌱 Seed Week 1'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleSeedWeek2}
+                  disabled={seeding}
+                  sx={{ borderColor: c.green, color: c.green, fontWeight: 700, textTransform: 'none', '&:hover': { borderColor: c.green, bgcolor: c.greenMuted }, boxShadow: 'none' }}
+                >
+                  {seeding ? 'Seeding…' : '🌿 Seed Week 2'}
+                </Button>
+              </Box>
             </Box>
 
             {/* ── Danger Zone ── */}
