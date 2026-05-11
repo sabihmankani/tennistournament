@@ -395,6 +395,38 @@ app.post('/api/admin/seed-week1', async (req: AuthRequest, res) => {
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 });
 
+// Seed Week 2 fixtures (keeps Week 1 and all players, only replaces Week 2 fixtures)
+app.post('/api/admin/seed-week2', async (req: AuthRequest, res) => {
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const WEEK_LABEL = 'Week 2 — May 12–17, 2026';
+
+    const players = await Player.find();
+    const idMap: Record<string, string> = {};
+    for (const p of players) idMap[p.firstName.toLowerCase()] = p._id.toString();
+
+    const FIXTURES: [string, string][] = [
+      ['meran',   'usman'],
+      ['talha',   'sabih'],
+      ['shauzab', 'haseeb'],
+      ['umair',   'meran'],
+      ['naveed',  'sabih'],
+      ['haseeb',  'talha'],
+      ['sabih',   'shauzab'],
+      ['meran',   'umair'],
+      ['talha',   'naveed'],
+    ];
+
+    await WeeklyMatch.deleteMany({ weekLabel: WEEK_LABEL });
+    for (const [h, a] of FIXTURES) {
+      if (!idMap[h] || !idMap[a]) continue;
+      await WeeklyMatch.create({ player1Id: idMap[h], player2Id: idMap[a], weekLabel: WEEK_LABEL });
+    }
+
+    res.json({ message: 'Seeded 9 Week 2 fixtures.' });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
 // Wipe all data (players, matches, ratelimits, weekly) — use with caution
 app.delete('/api/admin/clear-all', async (req: AuthRequest, res) => {
   if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
