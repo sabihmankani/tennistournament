@@ -31,13 +31,6 @@ interface Ranking {
   gamesWon: number;
 }
 
-interface RecordedMatch {
-  id: string;
-  player1Id: any;
-  player2Id: any;
-  score1: number;
-  score2: number;
-}
 
 function getDisplayScore(wm: WeeklyMatchEntry) {
   if (!wm.isCompleted || !wm.completedMatch) return null;
@@ -51,22 +44,16 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [weekly, setWeekly] = useState<WeeklyMatchEntry[]>([]);
   const [rankings, setRankings] = useState<Ranking[]>([]);
-  const [allMatches, setAllMatches] = useState<RecordedMatch[]>([]);
-  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       api.get<WeeklyMatchEntry[]>('/weekly-matches'),
       api.get<Ranking[]>('/rankings/overall'),
-      api.get<RecordedMatch[]>('/matches'),
-      api.get<Player[]>('/players'),
     ])
-      .then(([wmRes, rankRes, matchRes, playerRes]) => {
+      .then(([wmRes, rankRes]) => {
         setWeekly(wmRes.data);
         setRankings(rankRes.data);
-        setAllMatches(matchRes.data);
-        setAllPlayers(playerRes.data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -80,32 +67,6 @@ const HomePage: React.FC = () => {
   const leadScore = rankings.length > 0 ? rankings[0].points : 0;
 
   const playerCount = rankings.length > 0 ? rankings.length : 9;
-
-  // Compute remaining round-robin slots not covered by weekly fixtures
-  // Use allPlayers (from /players endpoint, uses formatDoc so id is guaranteed)
-  // Use w.player1Id.id from weekly (patched by backend) — both are formatDoc-derived hex strings
-  const weeklyPairKeys = new Set(weekly.map(w => `${w.player1Id.id}:${w.player2Id.id}`));
-  const players = allPlayers;
-  const pid = (p: any): string => (p._id ?? p.id)?.toString() ?? '';
-  type RemainingSlot = { p1: Player; p2: Player; score: { s1: number; s2: number } | null };
-  const remainingSlots: RemainingSlot[] = [];
-  for (const p1 of players) {
-    for (const p2 of players) {
-      if (p1.id === p2.id) continue;
-      if (weeklyPairKeys.has(`${p1.id}:${p2.id}`)) continue;
-      const recorded = allMatches.find(m =>
-        (pid(m.player1Id) === p1.id && pid(m.player2Id) === p2.id) ||
-        (pid(m.player1Id) === p2.id && pid(m.player2Id) === p1.id)
-      );
-      let score: { s1: number; s2: number } | null = null;
-      if (recorded) {
-        score = pid(recorded.player1Id) === p1.id
-          ? { s1: recorded.score1, s2: recorded.score2 }
-          : { s1: recorded.score2, s2: recorded.score1 };
-      }
-      remainingSlots.push({ p1, p2, score });
-    }
-  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: c.bg, transition: 'background-color 0.2s' }}>
@@ -383,86 +344,6 @@ const HomePage: React.FC = () => {
                 <Typography sx={{ color: c.textMuted, mb: 1 }}>No fixtures scheduled yet.</Typography>
                 <Box component={Link} to="/add-match" sx={{ color: c.green, textDecoration: 'none', fontSize: '0.875rem', fontWeight: 600 }}>
                   + Record a custom match
-                </Box>
-              </Box>
-            )}
-
-            {/* ── Other Combinations ── */}
-            {remainingSlots.length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
-                  <CalendarTodayIcon sx={{ color: c.textMuted, fontSize: 16 }} />
-                  <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>
-                    Other Combinations
-                  </Typography>
-                  <Box sx={{ px: 1, py: 0.2, borderRadius: 50, bgcolor: c.border, fontSize: '0.7rem', color: c.textMuted, fontWeight: 600, lineHeight: 1.6 }}>
-                    {remainingSlots.filter(s => s.score).length}/{remainingSlots.length}
-                  </Box>
-                </Box>
-
-                <Box sx={{ bgcolor: c.cardBg, borderRadius: 2.5, border: `1px solid ${c.border}`, overflow: 'hidden' }}>
-                  {remainingSlots.map(({ p1, p2, score }, i) => {
-                    const p1Won = score ? score.s1 > score.s2 : false;
-                    return (
-                      <Box
-                        key={`${p1.id}:${p2.id}`}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          px: 2,
-                          py: 1.25,
-                          borderBottom: i < remainingSlots.length - 1 ? `1px solid ${c.border}` : 'none',
-                          '&:hover': { bgcolor: c.border },
-                        }}
-                      >
-                        {/* P1 (home) */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1, justifyContent: 'flex-end' }}>
-                          <Typography sx={{ fontSize: '0.875rem', fontWeight: score && p1Won ? 700 : 400, color: score && p1Won ? c.text : c.textMuted, textAlign: 'right' }}>
-                            {p1.firstName}
-                          </Typography>
-                          <PlayerAvatar firstName={p1.firstName} lastName={p1.lastName} size={26} />
-                        </Box>
-
-                        {/* Score or dash */}
-                        <Box sx={{ px: 1.5, py: 0.5, bgcolor: c.border, borderRadius: 1.5, minWidth: 64, textAlign: 'center', flexShrink: 0 }}>
-                          {score ? (
-                            <Typography sx={{ fontWeight: 800, fontSize: '1rem', color: c.text, fontVariantNumeric: 'tabular-nums', letterSpacing: 1 }}>
-                              {score.s1}–{score.s2}
-                            </Typography>
-                          ) : (
-                            <Typography sx={{ fontSize: '0.8rem', color: c.textSubtle, fontWeight: 400 }}>–</Typography>
-                          )}
-                        </Box>
-
-                        {/* P2 (away) */}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flex: 1 }}>
-                          <PlayerAvatar firstName={p2.firstName} lastName={p2.lastName} size={26} />
-                          <Typography sx={{ fontSize: '0.875rem', fontWeight: score && !p1Won ? 700 : 400, color: score && !p1Won ? c.text : c.textMuted }}>
-                            {p2.firstName}
-                          </Typography>
-                        </Box>
-
-                        {/* Record button for unplayed */}
-                        {!score && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<DriveFileRenameOutlineIcon sx={{ fontSize: '14px !important' }} />}
-                            onClick={() => navigate(`/add-match?player1=${p1.id}&player2=${p2.id}`)}
-                            sx={{
-                              bgcolor: '#1B5E20', color: '#fff', borderRadius: 50,
-                              px: 1.5, py: 0.5, fontSize: '0.78rem', fontWeight: 600,
-                              textTransform: 'none', whiteSpace: 'nowrap', minWidth: 0,
-                              '&:hover': { bgcolor: '#155216' }, boxShadow: 'none',
-                            }}
-                          >
-                            Record
-                          </Button>
-                        )}
-                      </Box>
-                    );
-                  })}
                 </Box>
               </Box>
             )}
