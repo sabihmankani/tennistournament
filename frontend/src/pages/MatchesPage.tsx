@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../apiConfig';
-import { Box, Typography, CircularProgress, IconButton } from '@mui/material';
+import { Box, Typography, CircularProgress, IconButton, Alert } from '@mui/material';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useAppTheme } from '../context/ThemeContext';
@@ -25,20 +25,33 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
   const { c } = useAppTheme();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Match[]>('/matches')
       .then(r => setMatches(r.data))
-      .catch(() => {})
+      .catch(() => setError('Failed to load matches.'))
       .finally(() => setLoading(false));
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this match result?')) return;
+    if (!window.confirm('Delete this match? Stats will update automatically.')) return;
+    setDeletingId(id);
+    setError(null);
     try {
       await api.delete(`/matches/${id}`);
       setMatches(prev => prev.filter(m => m.id !== id));
-    } catch { /* ignore */ }
+    } catch (err: any) {
+      const msg = err.response?.data?.message;
+      if (err.response?.status === 403) {
+        setError('Not authorised — make sure you are logged in as admin.');
+      } else {
+        setError(msg || 'Failed to delete match. Please try again.');
+      }
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -65,6 +78,16 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
             {matches.length}
           </Box>
         </Box>
+
+        {error && (
+          <Alert
+            severity="error"
+            onClose={() => setError(null)}
+            sx={{ mb: 2, fontSize: '0.8rem' }}
+          >
+            {error}
+          </Alert>
+        )}
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
@@ -191,7 +214,13 @@ const MatchesPage: React.FC<MatchesPageProps> = ({ isAdminLoggedIn }) => {
                     <IconButton
                       size="small"
                       onClick={() => handleDelete(match.id)}
-                      sx={{ color: c.textSubtle, '&:hover': { color: c.lossColor }, ml: 'auto' }}
+                      disabled={deletingId === match.id}
+                      sx={{
+                        color: deletingId === match.id ? c.textSubtle : c.textSubtle,
+                        '&:hover': { color: c.lossColor },
+                        ml: 'auto',
+                        opacity: deletingId === match.id ? 0.4 : 1,
+                      }}
                     >
                       <DeleteOutlineIcon fontSize="small" />
                     </IconButton>

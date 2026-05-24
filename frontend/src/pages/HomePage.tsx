@@ -44,7 +44,6 @@ const HomePage: React.FC = () => {
   const [weekly, setWeekly] = useState<WeeklyMatchEntry[]>([]);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedWeek, setSelectedWeek] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -54,27 +53,18 @@ const HomePage: React.FC = () => {
       .then(([wmRes, rankRes]) => {
         setWeekly(wmRes.data);
         setRankings(rankRes.data);
-        // Default to latest week
-        const seen = new Set<string>();
-        const labels: string[] = wmRes.data.map((w: WeeklyMatchEntry) => w.weekLabel).filter((l: string) => seen.has(l) ? false : seen.add(l) && true);
-        if (labels.length > 0) setSelectedWeek(labels[labels.length - 1] as string);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  // Unique week labels in chronological order (API returns sorted by createdAt)
-  const weekLabels = weekly.reduce<string[]>((acc, w) => acc.includes(w.weekLabel) ? acc : [...acc, w.weekLabel], []);
-  const weekFixtures = weekly.filter(w => w.weekLabel === selectedWeek);
-
-  const completedWeekly = weekFixtures.filter(w => w.isCompleted).length;
-  const totalWeekly = weekFixtures.length;
+  const completedWeekly = weekly.filter(w => w.isCompleted).length;
+  const totalWeekly = weekly.length;
   // Use all-match stats from rankings so non-weekly matches are included
   const totalMatchesPlayed = rankings.reduce((sum, r) => sum + r.wins, 0);
   const gamesContested = rankings.reduce((sum, r) => sum + r.gamesWon, 0);
   const leadScore = rankings.length > 0 ? rankings[0].points : 0;
 
-  const weekNum = selectedWeek.match(/\d+/)?.[0] ?? '1';
   const playerCount = rankings.length > 0 ? rankings.length : 9;
 
   return (
@@ -192,56 +182,27 @@ const HomePage: React.FC = () => {
             {weekly.length > 0 && (
               <Box sx={{ mb: 3 }}>
                 {/* Section header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                    <CalendarTodayIcon sx={{ color: c.textMuted, fontSize: 16 }} />
-                    <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>
-                      Week {weekNum} fixtures
-                    </Typography>
-                    <Box
-                      sx={{
-                        px: 1, py: 0.2, borderRadius: 50, bgcolor: c.border,
-                        fontSize: '0.7rem', color: c.textMuted, fontWeight: 600, lineHeight: 1.6,
-                      }}
-                    >
-                      {completedWeekly}/{totalWeekly}
-                    </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1.5 }}>
+                  <CalendarTodayIcon sx={{ color: c.textMuted, fontSize: 16 }} />
+                  <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text }}>
+                    All Fixtures
+                  </Typography>
+                  <Box
+                    sx={{
+                      px: 1, py: 0.2, borderRadius: 50, bgcolor: c.border,
+                      fontSize: '0.7rem', color: c.textMuted, fontWeight: 600, lineHeight: 1.6,
+                    }}
+                  >
+                    {completedWeekly}/{totalWeekly}
                   </Box>
-
-                  {/* Week selector */}
-                  {weekLabels.length > 1 && (
-                    <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      {weekLabels.map(label => {
-                        const num = label.match(/\d+/)?.[0] ?? label;
-                        const active = label === selectedWeek;
-                        return (
-                          <Box
-                            key={label}
-                            onClick={() => setSelectedWeek(label)}
-                            sx={{
-                              px: 1.25, py: 0.35, borderRadius: 50,
-                              border: `1px solid ${active ? c.green : c.borderStrong}`,
-                              bgcolor: active ? c.green : 'transparent',
-                              color: active ? '#fff' : c.textMuted,
-                              fontSize: '0.72rem', fontWeight: active ? 700 : 500,
-                              cursor: 'pointer', userSelect: 'none',
-                              transition: 'all 0.1s',
-                              '&:hover': { borderColor: c.green, color: active ? '#fff' : c.green },
-                            }}
-                          >
-                            W{num}
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
                 </Box>
 
                 {/* Match cards */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {weekFixtures.map((wm, idx) => {
+                  {weekly.map((wm, idx) => {
                     const score = getDisplayScore(wm);
                     const homeWon = score ? score.s1 > score.s2 : false;
+                    const weekBadge = wm.weekLabel?.match(/\d+/)?.[0];
                     return (
                       <Box
                         key={wm.id}
@@ -254,18 +215,31 @@ const HomePage: React.FC = () => {
                         }}
                       >
                         {/* Match label */}
-                        <Typography
-                          sx={{
-                            fontSize: '0.63rem',
-                            color: c.textMuted,
-                            fontWeight: 700,
-                            letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
-                            mb: 1,
-                          }}
-                        >
-                          Match {idx + 1} · @ {wm.player1Id.firstName}'s
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography
+                            sx={{
+                              fontSize: '0.63rem',
+                              color: c.textMuted,
+                              fontWeight: 700,
+                              letterSpacing: '0.08em',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            Match {idx + 1} · @ {wm.player1Id.firstName}'s
+                          </Typography>
+                          {weekBadge && (
+                            <Box
+                              sx={{
+                                px: 0.75, py: 0.1, borderRadius: 50,
+                                bgcolor: c.border,
+                                fontSize: '0.6rem', color: c.textMuted, fontWeight: 700,
+                                lineHeight: 1.6, letterSpacing: '0.05em',
+                              }}
+                            >
+                              W{weekBadge}
+                            </Box>
+                          )}
+                        </Box>
 
                         {/* Players row */}
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
