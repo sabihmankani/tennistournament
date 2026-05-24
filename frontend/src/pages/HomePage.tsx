@@ -52,6 +52,7 @@ const HomePage: React.FC = () => {
   const [weekly, setWeekly] = useState<WeeklyMatchEntry[]>([]);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [allMatches, setAllMatches] = useState<RecordedMatch[]>([]);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,11 +60,13 @@ const HomePage: React.FC = () => {
       api.get<WeeklyMatchEntry[]>('/weekly-matches'),
       api.get<Ranking[]>('/rankings/overall'),
       api.get<RecordedMatch[]>('/matches'),
+      api.get<Player[]>('/players'),
     ])
-      .then(([wmRes, rankRes, matchRes]) => {
+      .then(([wmRes, rankRes, matchRes, playerRes]) => {
         setWeekly(wmRes.data);
         setRankings(rankRes.data);
         setAllMatches(matchRes.data);
+        setAllPlayers(playerRes.data);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -79,8 +82,10 @@ const HomePage: React.FC = () => {
   const playerCount = rankings.length > 0 ? rankings.length : 9;
 
   // Compute remaining round-robin slots not covered by weekly fixtures
+  // Use allPlayers (from /players endpoint, uses formatDoc so id is guaranteed)
+  // Use w.player1Id.id from weekly (patched by backend) — both are formatDoc-derived hex strings
   const weeklyPairKeys = new Set(weekly.map(w => `${w.player1Id.id}:${w.player2Id.id}`));
-  const players = rankings.map(r => r.player);
+  const players = allPlayers;
   const pid = (p: any): string => (p._id ?? p.id)?.toString() ?? '';
   type RemainingSlot = { p1: Player; p2: Player; score: { s1: number; s2: number } | null };
   const remainingSlots: RemainingSlot[] = [];
