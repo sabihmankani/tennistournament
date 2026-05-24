@@ -245,40 +245,46 @@ app.get('/api/weekly-matches', async (_req, res) => {
       .populate('player1Id player2Id')
       .lean();
 
-    const result = weekly.map(wm => {
-      const p1id = (wm.player1Id as any)._id.toString();
-      const p2id = (wm.player2Id as any)._id.toString();
+    const result = (() => {
+      const claimedIds = new Set<string>();
+      return weekly.map(wm => {
+        const p1id = (wm.player1Id as any)._id.toString();
+        const p2id = (wm.player2Id as any)._id.toString();
 
-      const recorded = allMatches.find(m => {
-        const mp1 = (m.player1Id as any)._id.toString();
-        const mp2 = (m.player2Id as any)._id.toString();
-        return (
-          new Date(m.date) >= wm.createdAt &&
-          ((mp1 === p1id && mp2 === p2id) || (mp1 === p2id && mp2 === p1id))
-        );
+        const recorded = allMatches.find(m => {
+          const mid = (m as any)._id.toString();
+          if (claimedIds.has(mid)) return false;
+          const mp1 = (m.player1Id as any)._id.toString();
+          const mp2 = (m.player2Id as any)._id.toString();
+          return (
+            new Date(m.date) >= wm.createdAt &&
+            ((mp1 === p1id && mp2 === p2id) || (mp1 === p2id && mp2 === p1id))
+          );
+        });
+
+        if (recorded) claimedIds.add((recorded as any)._id.toString());
+
+        const formatted = formatDoc(wm);
+        const fp1 = formatted.player1Id as any;
+        const fp2 = formatted.player2Id as any;
+        if (fp1?._id) { fp1.id = fp1._id.toString(); delete fp1._id; }
+        if (fp2?._id) { fp2.id = fp2._id.toString(); delete fp2._id; }
+        formatted.isCompleted = !!recorded;
+        if (recorded) {
+          const rp1 = recorded.player1Id as any;
+          const rp2 = recorded.player2Id as any;
+          formatted.completedMatch = {
+            score1: recorded.score1,
+            score2: recorded.score2,
+            player1Id: { id: (rp1._id ?? rp1.id).toString(), firstName: rp1.firstName, lastName: rp1.lastName },
+            player2Id: { id: (rp2._id ?? rp2.id).toString(), firstName: rp2.firstName, lastName: rp2.lastName },
+          };
+        } else {
+          formatted.completedMatch = null;
+        }
+        return formatted;
       });
-
-      const formatted = formatDoc(wm);
-      // formatDoc only converts the top-level _id; patch nested player objects too
-      const fp1 = formatted.player1Id as any;
-      const fp2 = formatted.player2Id as any;
-      if (fp1?._id) { fp1.id = fp1._id.toString(); delete fp1._id; }
-      if (fp2?._id) { fp2.id = fp2._id.toString(); delete fp2._id; }
-      formatted.isCompleted = !!recorded;
-      if (recorded) {
-        const rp1 = recorded.player1Id as any;
-        const rp2 = recorded.player2Id as any;
-        formatted.completedMatch = {
-          score1: recorded.score1,
-          score2: recorded.score2,
-          player1Id: { id: (rp1._id ?? rp1.id).toString(), firstName: rp1.firstName, lastName: rp1.lastName },
-          player2Id: { id: (rp2._id ?? rp2.id).toString(), firstName: rp2.firstName, lastName: rp2.lastName },
-        };
-      } else {
-        formatted.completedMatch = null;
-      }
-      return formatted;
-    });
+    })();
 
     res.json(result);
   } catch { res.status(500).send('Server Error'); }
