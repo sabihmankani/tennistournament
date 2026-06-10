@@ -13,8 +13,8 @@ import PlayerAvatar from '../components/PlayerAvatar';
 interface Player { id: string; firstName: string; lastName: string; }
 
 const VALID_SCORES = [
-  [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [7, 5],
-  [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [5, 7],
+  [6, 0], [6, 1], [6, 2], [6, 3], [6, 4], [6, 5], [7, 5], [7, 6],
+  [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [5, 7], [6, 7],
 ];
 
 const AddMatchPage: React.FC = () => {
@@ -52,7 +52,9 @@ const AddMatchPage: React.FC = () => {
     (s1 === 6 && s2 >= 0 && s2 <= 5) ||
     (s2 === 6 && s1 >= 0 && s1 <= 5) ||
     (s1 === 7 && s2 === 5) ||
-    (s2 === 7 && s1 === 5);
+    (s2 === 7 && s1 === 5) ||
+    (s1 === 7 && s2 === 6) ||
+    (s2 === 7 && s1 === 6);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +64,7 @@ const AddMatchPage: React.FC = () => {
     const s1 = parseInt(score1, 10);
     const s2 = parseInt(score2, 10);
     if (isNaN(s1) || isNaN(s2) || !validateScore(s1, s2)) {
-      setError('Invalid score: winner must have 6, loser 0–5.'); return;
+      setError('Invalid score: use 6-x (x≤5), 7-5, or 7-6 (tiebreak).'); return;
     }
     setSubmitting(true);
     try {
