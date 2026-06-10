@@ -115,6 +115,17 @@ const AdminDashboardPage: React.FC = () => {
     } catch { setError('Failed to clear schedule.'); }
   };
 
+  const handleClearRateLimits = async () => {
+    if (!window.confirm('Unblock all players? This clears all rate-limit records.')) return;
+    setError(null);
+    try {
+      await api.delete('/admin/clear-rate-limits');
+      setSuccess('All players unblocked.');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to clear rate limits.');
+    }
+  };
+
   const handleSeedWeek1 = async () => {
     if (!window.confirm('Seed 9 players + 9 Week 1 fixtures? (Existing players are kept, weekly schedule is replaced.)')) return;
     setSeeding(true); setError(null);
@@ -462,6 +473,21 @@ const AdminDashboardPage: React.FC = () => {
                   {seeding ? 'Seeding…' : '🌿 Seed Week 2'}
                 </Button>
               </Box>
+            </Box>
+
+            {/* ── Player Access ── */}
+            <Box sx={{ ...cardSx }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: c.text, mb: 1 }}>Player Access</Typography>
+              <Typography sx={{ color: c.textMuted, fontSize: '0.875rem', mb: 2 }}>
+                If a player is blocked from recording scores (rate limit), unblock them here.
+              </Typography>
+              <Button
+                variant="outlined"
+                onClick={handleClearRateLimits}
+                sx={{ borderColor: c.borderStrong, color: c.text, fontWeight: 700, textTransform: 'none', '&:hover': { borderColor: c.green, color: c.green }, boxShadow: 'none' }}
+              >
+                🔓 Unblock All Players
+              </Button>
             </Box>
 
             {/* ── Danger Zone ── */}

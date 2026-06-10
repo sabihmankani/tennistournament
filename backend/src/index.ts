@@ -147,9 +147,11 @@ app.post('/api/matches', async (req: AuthRequest, res) => {
       (s1 === 6 && s2 >= 0 && s2 <= 5) ||
       (s2 === 6 && s1 >= 0 && s1 <= 5) ||
       (s1 === 7 && s2 === 5) ||
-      (s2 === 7 && s1 === 5);
+      (s2 === 7 && s1 === 5) ||
+      (s1 === 7 && s2 === 6) ||
+      (s2 === 7 && s1 === 6);
     if (!validScore) {
-      return res.status(400).json({ message: 'Invalid score: winner must have 6 (loser 0–5) or 7-5.' });
+      return res.status(400).json({ message: 'Invalid score: winner must have 6 (loser 0–5), 7-5, or 7-6.' });
     }
 
     const match = new Match({
@@ -434,6 +436,14 @@ app.post('/api/admin/seed-week2', async (req: AuthRequest, res) => {
 });
 
 // Wipe all data (players, matches, ratelimits, weekly) — use with caution
+app.delete('/api/admin/clear-rate-limits', async (req: AuthRequest, res) => {
+  if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    await RateLimit.deleteMany({});
+    res.json({ message: 'All rate limits cleared.' });
+  } catch { res.status(500).send('Server Error'); }
+});
+
 app.delete('/api/admin/clear-all', async (req: AuthRequest, res) => {
   if (!req.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
